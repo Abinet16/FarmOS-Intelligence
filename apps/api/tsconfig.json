@@ -1,0 +1,9 @@
+{
+  "extends": "@farmos/tsconfig/node.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": false,
+    "types": ["vitest/globals", "node"]
+  },
+  "include": ["src", "test", "vitest.config*.ts"]
+}

@@ -1,0 +1,49 @@
+{
+  "name": "@farmos/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "start": "node dist/main.js",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.config.integration.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@farmos/shared-types": "workspace:*",
+    "@nestjs/common": "^12.3.3",
+    "@nestjs/core": "^12.3.3",
+    "@nestjs/platform-express": "^12.3.3",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "helmet": "^8.3.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@farmos/eslint-config": "workspace:*",
+    "@farmos/tsconfig": "workspace:*",
+    "@nestjs/cli": "^12.0.11",
+    "@nestjs/schematics": "^12.0.12",
+    "@nestjs/testing": "^12.3.3",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.20.5",
+    "@types/supertest": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.12",
+    "dotenv": "^17.2.3",
+    "eslint": "^9.39.5",
+    "prisma": "7.10.1",
+    "supertest": "^7.1.4",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.5",
+    "vitest": "^4.1.12"
+  }
+}
