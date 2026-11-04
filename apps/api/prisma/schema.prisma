@@ -147,6 +147,9 @@ model Organization {
   updatedAt DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   memberships         Membership[]
+  farms               Farm[]
+  houses              House[]
+  flockBatches        FlockBatch[]
 
   @@map("organizations")
 }
@@ -178,4 +181,62 @@ model Membership {
   @@unique([organizationId, userId])
   @@index([userId])
   @@map("memberships")
+}
+
+// ─────────────────────── Farm structure ───────────────────────
+
+model Farm {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String
+  location       String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  houses             House[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, name])
+  @@map("farms")
+}
+
+model House {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  farmId         String   @map("farm_id") @db.Uuid
+  name           String
+  capacity       Int
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  farm         Farm         @relation(fields: [organizationId, farmId], references: [organizationId, id], onDelete: Restrict)
+  flockBatches FlockBatch[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, farmId, name])
+  @@map("houses")
+}
+
+model FlockBatch {
+  id             String      @id @default(uuid()) @db.Uuid
+  organizationId String      @map("organization_id") @db.Uuid
+  houseId        String      @map("house_id") @db.Uuid
+  batchCode      String      @map("batch_code")
+  breed          String
+  placementDate  DateTime    @map("placement_date") @db.Date
+  initialBirds   Int         @map("initial_birds")
+  status         BatchStatus @default(PLANNED)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  house              House               @relation(fields: [organizationId, houseId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, batchCode])
+  @@index([organizationId, houseId])
+  @@index([organizationId, status])
+  @@map("flock_batches")
 }
