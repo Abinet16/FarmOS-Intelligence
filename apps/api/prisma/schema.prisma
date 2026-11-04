@@ -1,0 +1,136 @@
+// FarmOS Intelligence — relational model
+//
+// Conventions (see docs/architecture/data-model.md):
+// - UUID primary keys, UTC timestamptz, snake_case tables and columns.
+// - Every tenant-owned row carries organization_id, and every parent that a
+//   tenant-owned row points at exposes a unique (organization_id, id) key.
+//   Child rows reference parents through that composite key, so the database
+//   itself rejects a row that links to another tenant's farm, batch, etc.
+// - CHECK constraints and the append-only audit trigger live in the migration
+//   SQL because Prisma's schema language cannot express them.
+
+generator client {
+  provider             = "prisma-client"
+  output               = "../src/generated/prisma"
+  moduleFormat         = "esm"
+  importFileExtension  = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+
+  @@map("organization_status")
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+
+  @@map("user_status")
+}
+
+enum Role {
+  OWNER
+  MANAGER
+  SUPERVISOR
+  FIELD_WORKER
+  VETERINARIAN
+  AUDITOR
+
+  @@map("role")
+}
+
+enum BatchStatus {
+  PLANNED
+  ACTIVE
+  DEPLETED
+  CLOSED
+
+  @@map("batch_status")
+}
+
+enum RecordStatus {
+  SUBMITTED
+  APPROVED
+
+  @@map("record_status")
+}
+
+enum CorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("correction_status")
+}
+
+enum VaccinationStatus {
+  SCHEDULED
+  ADMINISTERED
+  MISSED
+  CANCELLED
+
+  @@map("vaccination_status")
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@map("severity")
+}
+
+enum ResolutionStatus {
+  OPEN
+  MONITORING
+  RESOLVED
+
+  @@map("resolution_status")
+}
+
+enum MovementType {
+  RECEIPT
+  ISSUE
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  TRANSFER_IN
+  TRANSFER_OUT
+
+  @@map("movement_type")
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+
+  @@map("alert_status")
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+
+  @@map("job_status")
+}
+
+enum AiMessageRole {
+  USER
+  ASSISTANT
+  TOOL
+
+  @@map("ai_message_role")
+}
