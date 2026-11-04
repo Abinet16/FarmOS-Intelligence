@@ -567,3 +567,32 @@ ALTER TABLE "ai_conversations" ADD CONSTRAINT "ai_conversations_organization_id_
 
 -- AddForeignKey
 ALTER TABLE "ai_messages" ADD CONSTRAINT "ai_messages_organization_id_conversation_id_fkey" FOREIGN KEY ("organization_id", "conversation_id") REFERENCES "ai_conversations"("organization_id", "id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Hand-written constraints (not expressible in schema.prisma)
+-- Names follow Postgres' default <table>_<column>_check so errors are predictable.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE "houses" ADD CONSTRAINT "houses_capacity_check" CHECK ("capacity" > 0);
+
+ALTER TABLE "flock_batches" ADD CONSTRAINT "flock_batches_initial_birds_check" CHECK ("initial_birds" > 0);
+
+ALTER TABLE "production_logs" ADD CONSTRAINT "production_logs_eggs_collected_check" CHECK ("eggs_collected" >= 0);
+ALTER TABLE "production_logs" ADD CONSTRAINT "production_logs_water_consumption_litres_check" CHECK ("water_consumption_litres" IS NULL OR "water_consumption_litres" >= 0);
+
+ALTER TABLE "mortality_events" ADD CONSTRAINT "mortality_events_quantity_check" CHECK ("quantity" > 0);
+
+ALTER TABLE "feed_usage" ADD CONSTRAINT "feed_usage_quantity_check" CHECK ("quantity" >= 0);
+
+ALTER TABLE "weight_samples" ADD CONSTRAINT "weight_samples_sample_size_check" CHECK ("sample_size" > 0);
+ALTER TABLE "weight_samples" ADD CONSTRAINT "weight_samples_average_weight_grams_check" CHECK ("average_weight_grams" > 0);
+
+ALTER TABLE "vaccines" ADD CONSTRAINT "vaccines_recommended_interval_days_check" CHECK ("recommended_interval_days" IS NULL OR "recommended_interval_days" > 0);
+
+ALTER TABLE "vaccination_records" ADD CONSTRAINT "vaccination_records_administered_check"
+  CHECK (("status" = 'ADMINISTERED') = ("administered_at" IS NOT NULL));
+
+ALTER TABLE "inventory_items" ADD CONSTRAINT "inventory_items_reorder_level_check" CHECK ("reorder_level" IS NULL OR "reorder_level" >= 0);
+
+-- Direction is carried by movement_type, so quantity is always positive.
+ALTER TABLE "inventory_movements" ADD CONSTRAINT "inventory_movements_quantity_check" CHECK ("quantity" > 0);
