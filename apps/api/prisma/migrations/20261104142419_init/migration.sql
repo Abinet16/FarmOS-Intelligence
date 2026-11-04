@@ -596,3 +596,21 @@ ALTER TABLE "inventory_items" ADD CONSTRAINT "inventory_items_reorder_level_chec
 
 -- Direction is carried by movement_type, so quantity is always positive.
 ALTER TABLE "inventory_movements" ADD CONSTRAINT "inventory_movements_quantity_check" CHECK ("quantity" > 0);
+
+-- Audit history is append-only. The application role should also lack
+-- UPDATE/DELETE grants; the trigger protects against owner-level mistakes too.
+CREATE FUNCTION "audit_logs_reject_mutation"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'audit_logs is append-only (% rejected)', TG_OP
+    USING ERRCODE = 'insufficient_privilege';
+END;
+$$;
+
+CREATE TRIGGER "audit_logs_append_only"
+  BEFORE UPDATE OR DELETE ON "audit_logs"
+  FOR EACH ROW EXECUTE FUNCTION "audit_logs_reject_mutation"();
+
+CREATE TRIGGER "audit_logs_no_truncate"
+  BEFORE TRUNCATE ON "audit_logs"
+  FOR EACH STATEMENT EXECUTE FUNCTION "audit_logs_reject_mutation"();
