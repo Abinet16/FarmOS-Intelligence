@@ -150,6 +150,8 @@ model Organization {
   farms               Farm[]
   houses              House[]
   flockBatches        FlockBatch[]
+  productionLogs      ProductionLog[]
+  productionCorrections ProductionLogCorrection[]
 
   @@map("organizations")
 }
@@ -233,10 +235,59 @@ model FlockBatch {
 
   organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   house              House               @relation(fields: [organizationId, houseId], references: [organizationId, id], onDelete: Restrict)
+  productionLogs     ProductionLog[]
 
   @@unique([organizationId, id])
   @@unique([organizationId, batchCode])
   @@index([organizationId, houseId])
   @@index([organizationId, status])
   @@map("flock_batches")
+}
+
+// ─────────────────────── Operational records ───────────────────────
+
+model ProductionLog {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @map("organization_id") @db.Uuid
+  batchId          String       @map("batch_id") @db.Uuid
+  logDate          DateTime     @map("log_date") @db.Date
+  eggsCollected    Int          @default(0) @map("eggs_collected")
+  waterConsumption Decimal?     @map("water_consumption_litres") @db.Decimal(12, 2)
+  notes            String?
+  status           RecordStatus @default(SUBMITTED)
+  createdBy        String       @map("created_by") @db.Uuid
+  approvedBy       String?      @map("approved_by") @db.Uuid
+  approvedAt       DateTime?    @map("approved_at") @db.Timestamptz(3)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization              @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  batch        FlockBatch                @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
+  corrections  ProductionLogCorrection[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, batchId, logDate])
+  @@index([organizationId, logDate])
+  @@map("production_logs")
+}
+
+/// Approved production logs are never overwritten in place. A change is
+/// proposed here and applied only after a supervisor or manager approves it.
+model ProductionLogCorrection {
+  id              String           @id @default(uuid()) @db.Uuid
+  organizationId  String           @map("organization_id") @db.Uuid
+  productionLogId String           @map("production_log_id") @db.Uuid
+  proposedChanges Json             @map("proposed_changes")
+  reason          String
+  status          CorrectionStatus @default(PENDING)
+  requestedBy     String           @map("requested_by") @db.Uuid
+  reviewedBy      String?          @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?        @map("reviewed_at") @db.Timestamptz(3)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  productionLog ProductionLog @relation(fields: [organizationId, productionLogId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, status])
+  @@map("production_log_corrections")
 }
