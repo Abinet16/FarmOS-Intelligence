@@ -159,6 +159,8 @@ model Organization {
   vaccines            Vaccine[]
   vaccinationRecords  VaccinationRecord[]
   healthEvents        HealthEvent[]
+  inventoryItems      InventoryItem[]
+  inventoryMovements  InventoryMovement[]
 
   @@map("organizations")
 }
@@ -204,6 +206,7 @@ model Farm {
 
   organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   houses             House[]
+  inventoryMovements InventoryMovement[]
 
   @@unique([organizationId, id])
   @@unique([organizationId, name])
@@ -430,4 +433,45 @@ model HealthEvent {
 
   @@index([organizationId, batchId, observedAt])
   @@map("health_events")
+}
+
+// ─────────────────────── Inventory ───────────────────────
+
+model InventoryItem {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String
+  unit           String
+  reorderLevel   Decimal? @map("reorder_level") @db.Decimal(14, 3)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  movements    InventoryMovement[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, name])
+  @@map("inventory_items")
+}
+
+/// Stock balances are derived from movements; quantity is always positive and
+/// movement_type carries the direction.
+model InventoryMovement {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  itemId         String       @map("item_id") @db.Uuid
+  farmId         String       @map("farm_id") @db.Uuid
+  movementType   MovementType @map("movement_type")
+  quantity       Decimal      @db.Decimal(14, 3)
+  occurredAt     DateTime     @map("occurred_at") @db.Timestamptz(3)
+  reference      String?
+  recordedBy     String       @map("recorded_by") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  item         InventoryItem @relation(fields: [organizationId, itemId], references: [organizationId, id], onDelete: Restrict)
+  farm         Farm          @relation(fields: [organizationId, farmId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, itemId, farmId, occurredAt])
+  @@map("inventory_movements")
 }
