@@ -1,0 +1,33 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true
+  '@nestjs/core': true
+  sharp: true
+  unrs-resolver: true
+  '@parcel/watcher': false
+
+# Large tarballs (next, @next/swc, prisma) need headroom on slow links
+fetchTimeout: 600000
+networkConcurrency: 2
+fetchRetries: 5
+minimumReleaseAgeExclude:
+  - '@nestjs/common@12.3.3'
+  - '@nestjs/core@12.3.3'
+  - '@nestjs/platform-express@12.3.3'
+  - '@nestjs/testing@12.3.3'
+  - '@next/env@16.4.5'
+  - '@next/eslint-plugin-next@16.4.5'
+  - '@next/swc-darwin-arm64@16.4.5'
+  - '@next/swc-darwin-x64@16.4.5'
+  - '@next/swc-linux-arm64-gnu@16.4.5'
+  - '@next/swc-linux-arm64-musl@16.4.5'
+  - '@next/swc-linux-x64-gnu@16.4.5'
+  - '@next/swc-linux-x64-musl@16.4.5'
+  - '@next/swc-win32-arm64-msvc@16.4.5'
+  - '@next/swc-win32-x64-msvc@16.4.5'
+  - eslint-config-next@16.4.5
+  - next@16.4.5
