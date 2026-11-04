@@ -156,6 +156,9 @@ model Organization {
   feedTypes           FeedType[]
   feedUsage           FeedUsage[]
   weightSamples       WeightSample[]
+  vaccines            Vaccine[]
+  vaccinationRecords  VaccinationRecord[]
+  healthEvents        HealthEvent[]
 
   @@map("organizations")
 }
@@ -243,6 +246,8 @@ model FlockBatch {
   mortalityEvents    MortalityEvent[]
   feedUsage          FeedUsage[]
   weightSamples      WeightSample[]
+  vaccinationRecords VaccinationRecord[]
+  healthEvents       HealthEvent[]
 
   @@unique([organizationId, id])
   @@unique([organizationId, batchCode])
@@ -366,4 +371,63 @@ model WeightSample {
 
   @@index([organizationId, batchId, sampleDate])
   @@map("weight_samples")
+}
+
+// ─────────────────────── Health ───────────────────────
+
+model Vaccine {
+  id                      String   @id @default(uuid()) @db.Uuid
+  organizationId          String   @map("organization_id") @db.Uuid
+  name                    String
+  recommendedIntervalDays Int?     @map("recommended_interval_days")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  vaccinationRecords VaccinationRecord[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, name])
+  @@map("vaccines")
+}
+
+model VaccinationRecord {
+  id              String            @id @default(uuid()) @db.Uuid
+  organizationId  String            @map("organization_id") @db.Uuid
+  batchId         String            @map("batch_id") @db.Uuid
+  vaccineId       String            @map("vaccine_id") @db.Uuid
+  scheduledDate   DateTime          @map("scheduled_date") @db.Date
+  administeredAt  DateTime?         @map("administered_at") @db.Timestamptz(3)
+  status          VaccinationStatus @default(SCHEDULED)
+  recordedBy      String?           @map("recorded_by") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  batch        FlockBatch   @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
+  vaccine      Vaccine      @relation(fields: [organizationId, vaccineId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, batchId, scheduledDate])
+  @@index([organizationId, status, scheduledDate])
+  @@map("vaccination_records")
+}
+
+model HealthEvent {
+  id               String           @id @default(uuid()) @db.Uuid
+  organizationId   String           @map("organization_id") @db.Uuid
+  batchId          String           @map("batch_id") @db.Uuid
+  observedAt       DateTime         @map("observed_at") @db.Timestamptz(3)
+  category         String
+  severity         Severity
+  description      String
+  resolutionStatus ResolutionStatus @default(OPEN) @map("resolution_status")
+  recordedBy       String           @map("recorded_by") @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  batch        FlockBatch   @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, batchId, observedAt])
+  @@map("health_events")
 }
