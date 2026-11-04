@@ -1,0 +1,71 @@
+# FarmOS Intelligence
+
+A multi-tenant farm operations and decision-support platform, starting with poultry production.
+Farm teams record daily operations; managers get validated metrics, threshold alerts, and an AI
+assistant whose answers are grounded in their own records.
+
+> **Status:** v0.1 (Secure foundation) is in progress. See the [roadmap](#roadmap).
+
+## Stack
+
+| Layer    | Choice                                                     |
+| -------- | ---------------------------------------------------------- |
+| Web      | Next.js (App Router), TypeScript, Tailwind CSS, Ant Design |
+| API      | NestJS, Prisma 7, PostgreSQL 17                            |
+| Jobs     | Redis + BullMQ                                             |
+| Tooling  | pnpm workspaces, Turborepo, ESLint, Prettier, Vitest       |
+| Delivery | Docker, GitHub Actions                                     |
+
+## Quick start
+
+Prerequisites: Node 22+, pnpm 11+, Docker.
+
+```bash
+cp .env.example .env
+cp apps/api/.env.example apps/api/.env
+pnpm install
+pnpm db:up                                       # PostgreSQL + Redis
+pnpm --filter @farmos/api prisma:migrate:deploy  # apply migrations
+pnpm dev                                         # API on :4000, web on :3000
+```
+
+Check the API:
+
+```bash
+curl localhost:4000/health/live    # {"status":"ok"}
+curl localhost:4000/health/ready   # {"status":"ok","checks":{"database":"up"}}
+```
+
+## Common commands
+
+| Command                 | What it does                                             |
+| ----------------------- | -------------------------------------------------------- |
+| `pnpm lint`             | ESLint across all packages                               |
+| `pnpm typecheck`        | TypeScript checks across all packages                    |
+| `pnpm test`             | Unit tests                                               |
+| `pnpm test:integration` | Integration tests against the database in `DATABASE_URL` |
+| `pnpm db:migrate`       | Create and apply a new migration from `schema.prisma`    |
+| `pnpm format`           | Prettier                                                 |
+
+## Documentation
+
+- [Architecture overview](docs/architecture/overview.md)
+- [Data model and integrity rules](docs/architecture/data-model.md)
+- [Permission matrix](docs/architecture/permissions.md)
+- [Metric definitions](docs/architecture/metrics.md)
+- [Architecture decision records](docs/decisions/README.md)
+
+## Roadmap
+
+| Milestone                   | Weeks | Outcome                                           |
+| --------------------------- | ----- | ------------------------------------------------- |
+| v0.1 — Secure foundation    | 1–2   | Repo, CI, schema, auth, tenant isolation, audit   |
+| v0.2 — Farm operations      | 3–5   | Farms, houses, flocks, daily records, corrections |
+| v0.3 — Analytics and alerts | 6     | Verified KPIs, dashboards, threshold alerts       |
+| v0.4 — AI decision support  | 7–8   | Grounded assistant, evaluation set, reports, jobs |
+| v0.5 — Production release   | 9–10  | Hardening, observability, deployed demo           |
+
+## Product boundary
+
+The AI assistant summarizes records, explains calculated trends, and suggests checks. It does
+not diagnose disease, prescribe medication, or modify production records.
