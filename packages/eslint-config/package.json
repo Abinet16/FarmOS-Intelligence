@@ -1,0 +1,16 @@
+{
+  "name": "@farmos/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.39.5",
+    "typescript-eslint": "^8.72.1"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0"
+  }
+}
