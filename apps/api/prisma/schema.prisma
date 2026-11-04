@@ -164,6 +164,7 @@ model Organization {
   alerts              Alert[]
   auditLogs           AuditLog[]
   reportJobs          ReportJob[]
+  aiConversations     AiConversation[]
 
   @@map("organizations")
 }
@@ -540,4 +541,34 @@ model ReportJob {
   @@unique([organizationId, idempotencyKey])
   @@index([organizationId, createdAt])
   @@map("report_jobs")
+}
+
+model AiConversation {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  messages     AiMessage[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, userId, createdAt])
+  @@map("ai_conversations")
+}
+
+model AiMessage {
+  id               String        @id @default(uuid()) @db.Uuid
+  organizationId   String        @map("organization_id") @db.Uuid
+  conversationId   String        @map("conversation_id") @db.Uuid
+  role             AiMessageRole
+  content          String
+  /// Tool calls, record references and model/provider metadata backing the answer.
+  evidenceMetadata Json?         @map("evidence_metadata")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  conversation AiConversation @relation(fields: [organizationId, conversationId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, conversationId, createdAt])
+  @@map("ai_messages")
 }
