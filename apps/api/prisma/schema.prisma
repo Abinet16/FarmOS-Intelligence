@@ -161,6 +161,9 @@ model Organization {
   healthEvents        HealthEvent[]
   inventoryItems      InventoryItem[]
   inventoryMovements  InventoryMovement[]
+  alerts              Alert[]
+  auditLogs           AuditLog[]
+  reportJobs          ReportJob[]
 
   @@map("organizations")
 }
@@ -251,6 +254,7 @@ model FlockBatch {
   weightSamples      WeightSample[]
   vaccinationRecords VaccinationRecord[]
   healthEvents       HealthEvent[]
+  alerts             Alert[]
 
   @@unique([organizationId, id])
   @@unique([organizationId, batchCode])
@@ -474,4 +478,66 @@ model InventoryMovement {
 
   @@index([organizationId, itemId, farmId, occurredAt])
   @@map("inventory_movements")
+}
+
+// ─────────────────────── Derived intelligence ───────────────────────
+
+model Alert {
+  id             String      @id @default(uuid()) @db.Uuid
+  organizationId String      @map("organization_id") @db.Uuid
+  batchId        String?     @map("batch_id") @db.Uuid
+  ruleCode       String      @map("rule_code")
+  severity       Severity
+  status         AlertStatus @default(OPEN)
+  /// Deterministic key (rule + subject + window) so job retries cannot raise duplicates.
+  dedupeKey      String      @map("dedupe_key")
+  details        Json?
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  batch        FlockBatch?  @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, dedupeKey])
+  @@index([organizationId, status, createdAt])
+  @@map("alerts")
+}
+
+/// Append-only. UPDATE and DELETE are blocked by a trigger in the migration.
+model AuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  actorId        String?  @map("actor_id") @db.Uuid
+  action         String
+  entityType     String   @map("entity_type")
+  entityId       String?  @map("entity_id") @db.Uuid
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, entityType, entityId])
+  @@map("audit_logs")
+}
+
+model ReportJob {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  requestedBy    String    @map("requested_by") @db.Uuid
+  reportType     String    @map("report_type")
+  parameters     Json?
+  /// Client-supplied key so a retried request returns the existing job.
+  idempotencyKey String    @map("idempotency_key")
+  status         JobStatus @default(QUEUED)
+  fileKey        String?   @map("file_key")
+  error          String?
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, createdAt])
+  @@map("report_jobs")
 }
