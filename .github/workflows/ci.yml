@@ -13,8 +13,6 @@ jobs:
   checks:
     name: Lint, typecheck, unit tests
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: postgresql://farmos:farmos@localhost:5432/farmos?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -46,7 +44,9 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://farmos:farmos@localhost:5432/farmos?schema=public
+      # Owner role runs migrations; the API and RLS tests use the restricted role.
+      MIGRATION_DATABASE_URL: postgresql://farmos:farmos@localhost:5432/farmos?schema=public
+      DATABASE_URL: postgresql://farmos_api:ci_app_password@localhost:5432/farmos?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -57,10 +57,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Apply migrations to a fresh database
         run: pnpm --filter @farmos/api prisma:migrate:deploy
+      - name: Create the runtime database role
+        run: pnpm --filter @farmos/api db:app-user
       - name: Check schema and migrations are in sync
         working-directory: apps/api
         run: pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
-      - run: pnpm test:integration
+      - name: Integration tests (rebuilds farmos_test from migrations)
+        run: pnpm test:integration
 
   build:
     name: Build
