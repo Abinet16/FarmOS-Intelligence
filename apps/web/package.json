@@ -10,10 +10,12 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@farmos/shared-types": "workspace:*",
+    "@tanstack/react-query": "^5.105.3",
+    "better-auth": "^1.7.17",
     "next": "16.4.5",
     "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "@farmos/shared-types": "workspace:*"
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
