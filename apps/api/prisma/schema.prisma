@@ -10,10 +10,10 @@
 //   SQL because Prisma's schema language cannot express them.
 
 generator client {
-  provider             = "prisma-client"
-  output               = "../src/generated/prisma"
-  moduleFormat         = "esm"
-  importFileExtension  = "js"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
 }
 
 datasource db {
@@ -146,40 +146,112 @@ model Organization {
   createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  memberships         Membership[]
-  farms               Farm[]
-  houses              House[]
-  flockBatches        FlockBatch[]
-  productionLogs      ProductionLog[]
+  memberships           Membership[]
+  farms                 Farm[]
+  houses                House[]
+  flockBatches          FlockBatch[]
+  productionLogs        ProductionLog[]
   productionCorrections ProductionLogCorrection[]
-  mortalityEvents     MortalityEvent[]
-  feedTypes           FeedType[]
-  feedUsage           FeedUsage[]
-  weightSamples       WeightSample[]
-  vaccines            Vaccine[]
-  vaccinationRecords  VaccinationRecord[]
-  healthEvents        HealthEvent[]
-  inventoryItems      InventoryItem[]
-  inventoryMovements  InventoryMovement[]
-  alerts              Alert[]
-  auditLogs           AuditLog[]
-  reportJobs          ReportJob[]
-  aiConversations     AiConversation[]
+  mortalityEvents       MortalityEvent[]
+  feedTypes             FeedType[]
+  feedUsage             FeedUsage[]
+  weightSamples         WeightSample[]
+  vaccines              Vaccine[]
+  vaccinationRecords    VaccinationRecord[]
+  healthEvents          HealthEvent[]
+  inventoryItems        InventoryItem[]
+  inventoryMovements    InventoryMovement[]
+  alerts                Alert[]
+  auditLogs             AuditLog[]
+  reportJobs            ReportJob[]
+  aiConversations       AiConversation[]
 
   @@map("organizations")
 }
 
+/// Better Auth owns the identity columns (email, email_verified, image);
+/// FarmOS adds status. Users are disabled, never deleted, so actor history stays intact.
 model User {
-  id        String     @id @default(uuid()) @db.Uuid
-  name      String
-  email     String     @unique
-  status    UserStatus @default(ACTIVE)
-  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id            String     @id @default(uuid()) @db.Uuid
+  name          String
+  email         String     @unique
+  emailVerified Boolean    @default(false) @map("email_verified")
+  image         String?
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   memberships Membership[]
+  sessions    Session[]
+  accounts    Account[]
+
+  productionLogCreators      ProductionLog[]           @relation("ProductionLogCreator")
+  productionLogApprovers     ProductionLog[]           @relation("ProductionLogApprover")
+  correctionRequesters       ProductionLogCorrection[] @relation("CorrectionRequester")
+  correctionReviewers        ProductionLogCorrection[] @relation("CorrectionReviewer")
+  mortalityRecorders         MortalityEvent[]          @relation("MortalityRecorder")
+  feedUsageRecorders         FeedUsage[]               @relation("FeedUsageRecorder")
+  weightSampleRecorders      WeightSample[]            @relation("WeightSampleRecorder")
+  vaccinationRecorders       VaccinationRecord[]       @relation("VaccinationRecorder")
+  healthEventRecorders       HealthEvent[]             @relation("HealthEventRecorder")
+  inventoryMovementRecorders InventoryMovement[]       @relation("InventoryMovementRecorder")
+  auditActors                AuditLog[]                @relation("AuditActor")
+  reportRequesters           ReportJob[]               @relation("ReportRequester")
+  aiConversationUsers        AiConversation[]          @relation("AiConversationUser")
 
   @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// One row per sign-in method. For email/password, provider_id = "credential"
+/// and password holds the hash (scrypt, managed by Better Auth).
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([identifier])
+  @@map("verifications")
 }
 
 model Membership {
@@ -282,6 +354,8 @@ model ProductionLog {
   updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization Organization              @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  approver     User?                     @relation("ProductionLogApprover", fields: [approvedBy], references: [id], onDelete: Restrict)
+  creator      User                      @relation("ProductionLogCreator", fields: [createdBy], references: [id], onDelete: Restrict)
   batch        FlockBatch                @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
   corrections  ProductionLogCorrection[]
 
@@ -306,6 +380,8 @@ model ProductionLogCorrection {
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  reviewer      User?         @relation("CorrectionReviewer", fields: [reviewedBy], references: [id], onDelete: Restrict)
+  requester     User          @relation("CorrectionRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
   productionLog ProductionLog @relation(fields: [organizationId, productionLogId], references: [organizationId, id], onDelete: Restrict)
 
   @@index([organizationId, status])
@@ -324,6 +400,7 @@ model MortalityEvent {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  recorder     User         @relation("MortalityRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
   batch        FlockBatch   @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
 
   @@index([organizationId, batchId, eventDate])
@@ -357,6 +434,7 @@ model FeedUsage {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  recorder     User         @relation("FeedUsageRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
   batch        FlockBatch   @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
   feedType     FeedType     @relation(fields: [organizationId, feedTypeId], references: [organizationId, id], onDelete: Restrict)
 
@@ -375,6 +453,7 @@ model WeightSample {
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  recorder     User         @relation("WeightSampleRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
   batch        FlockBatch   @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
 
   @@index([organizationId, batchId, sampleDate])
@@ -400,18 +479,19 @@ model Vaccine {
 }
 
 model VaccinationRecord {
-  id              String            @id @default(uuid()) @db.Uuid
-  organizationId  String            @map("organization_id") @db.Uuid
-  batchId         String            @map("batch_id") @db.Uuid
-  vaccineId       String            @map("vaccine_id") @db.Uuid
-  scheduledDate   DateTime          @map("scheduled_date") @db.Date
-  administeredAt  DateTime?         @map("administered_at") @db.Timestamptz(3)
-  status          VaccinationStatus @default(SCHEDULED)
-  recordedBy      String?           @map("recorded_by") @db.Uuid
-  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @map("organization_id") @db.Uuid
+  batchId        String            @map("batch_id") @db.Uuid
+  vaccineId      String            @map("vaccine_id") @db.Uuid
+  scheduledDate  DateTime          @map("scheduled_date") @db.Date
+  administeredAt DateTime?         @map("administered_at") @db.Timestamptz(3)
+  status         VaccinationStatus @default(SCHEDULED)
+  recordedBy     String?           @map("recorded_by") @db.Uuid
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  recorder     User?        @relation("VaccinationRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
   batch        FlockBatch   @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
   vaccine      Vaccine      @relation(fields: [organizationId, vaccineId], references: [organizationId, id], onDelete: Restrict)
 
@@ -434,6 +514,7 @@ model HealthEvent {
   updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  recorder     User         @relation("HealthEventRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
   batch        FlockBatch   @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
 
   @@index([organizationId, batchId, observedAt])
@@ -474,6 +555,7 @@ model InventoryMovement {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  recorder     User          @relation("InventoryMovementRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
   item         InventoryItem @relation(fields: [organizationId, itemId], references: [organizationId, id], onDelete: Restrict)
   farm         Farm          @relation(fields: [organizationId, farmId], references: [organizationId, id], onDelete: Restrict)
 
@@ -516,6 +598,7 @@ model AuditLog {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  actor        User?        @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict)
 
   @@index([organizationId, createdAt])
   @@index([organizationId, entityType, entityId])
@@ -537,6 +620,7 @@ model ReportJob {
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  requester    User         @relation("ReportRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
 
   @@unique([organizationId, idempotencyKey])
   @@index([organizationId, createdAt])
@@ -550,6 +634,7 @@ model AiConversation {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User         @relation("AiConversationUser", fields: [userId], references: [id], onDelete: Restrict)
   messages     AiMessage[]
 
   @@unique([organizationId, id])
