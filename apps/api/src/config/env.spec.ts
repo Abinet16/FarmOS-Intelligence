@@ -1,7 +1,11 @@
 import { loadEnv } from './env.js';
 
 describe('loadEnv', () => {
-  const valid = { DATABASE_URL: 'postgresql://u:p@localhost:5432/db' };
+  const valid = {
+    DATABASE_URL: 'postgresql://u:p@localhost:5432/db',
+    BETTER_AUTH_URL: 'http://localhost:4000',
+    BETTER_AUTH_SECRET: 'x'.repeat(32),
+  };
 
   it('applies defaults', () => {
     const env = loadEnv(valid);
@@ -16,6 +20,11 @@ describe('loadEnv', () => {
   });
 
   it('rejects a missing DATABASE_URL', () => {
-    expect(() => loadEnv({})).toThrow(/DATABASE_URL/);
+    const { DATABASE_URL: _omit, ...rest } = valid;
+    expect(() => loadEnv(rest)).toThrow(/DATABASE_URL/);
+  });
+
+  it('rejects a short auth secret', () => {
+    expect(() => loadEnv({ ...valid, BETTER_AUTH_SECRET: 'short' })).toThrow(/BETTER_AUTH_SECRET/);
   });
 });
