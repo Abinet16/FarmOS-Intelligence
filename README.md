@@ -22,12 +22,16 @@ Prerequisites: Node 22+, pnpm 11+, Docker.
 
 ```bash
 cp .env.example .env
-cp apps/api/.env.example apps/api/.env
+cp apps/api/.env.example apps/api/.env           # set BETTER_AUTH_SECRET: openssl rand -base64 32
+cp apps/web/.env.example apps/web/.env.local
 pnpm install
 pnpm db:up                                       # PostgreSQL + Redis
-pnpm --filter @farmos/api prisma:migrate:deploy  # apply migrations
+pnpm --filter @farmos/api prisma:migrate:deploy  # apply migrations (as the owner role)
+pnpm --filter @farmos/api db:app-user            # create the RLS-restricted runtime role
 pnpm dev                                         # API on :4000, web on :3000
 ```
+
+Then open http://localhost:3000, create an account, and create an organization.
 
 Check the API:
 
@@ -52,6 +56,8 @@ curl localhost:4000/health/ready   # {"status":"ok","checks":{"database":"up"}}
 - [Architecture overview](docs/architecture/overview.md)
 - [Data model and integrity rules](docs/architecture/data-model.md)
 - [Permission matrix](docs/architecture/permissions.md)
+- [Security model](docs/architecture/security.md)
+- [API reference](docs/api/README.md)
 - [Metric definitions](docs/architecture/metrics.md)
 - [Architecture decision records](docs/decisions/README.md)
 
