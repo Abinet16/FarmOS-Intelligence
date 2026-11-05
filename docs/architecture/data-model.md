@@ -10,6 +10,8 @@ Constraints that Prisma cannot express live in the migration SQL under
 erDiagram
   organizations ||--o{ memberships : has
   users ||--o{ memberships : has
+  users ||--o{ sessions : has
+  users ||--o{ accounts : has
   organizations ||--o{ farms : owns
   farms ||--o{ houses : contains
   houses ||--o{ flock_batches : hosts
@@ -52,11 +54,15 @@ erDiagram
 | **Idempotent jobs.**                                                               | `alerts (organization_id, dedupe_key)` and `report_jobs (organization_id, idempotency_key)` are unique                                                                                                                        |
 | **No cascading deletes of history.**                                               | All foreign keys use `ON DELETE RESTRICT`; entities are archived via status                                                                                                                                                   |
 
+## Identity tables
+
+`users`, `sessions`, `accounts` and `verifications` are owned by Better Auth
+([ADR-0005](../decisions/0005-authentication.md)). They are not tenant-scoped and have no RLS.
+Sessions and accounts cascade-delete with their user; nothing else does.
+
 ## Deliberate deviations from the original plan
 
 - `ai_messages` carries `organization_id` so it follows the same composite-FK rule as every
   other tenant-owned table.
 - `production_logs` gained `status`, `approved_by` and `approved_at`, and a
   `production_log_corrections` table was added to implement the correction workflow.
-- Actor columns (`created_by`, `recorded_by`, …) are plain UUIDs in week 1. Foreign keys to
-  `users` will be added in week 2 once the authentication model is settled.

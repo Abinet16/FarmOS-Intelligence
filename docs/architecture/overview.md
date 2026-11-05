@@ -50,7 +50,7 @@ flowchart TB
    ([permissions.md](permissions.md)).
 4. DTO validation rejects malformed input.
 5. A domain service applies business rules.
-6. The repository runs tenant-scoped queries; composite foreign keys and (later) row-level
+6. The repository runs tenant-scoped queries; composite foreign keys and row-level
    security back this up in the database.
 7. An audit entry and any background jobs are recorded in the same transaction (outbox).
 8. The API returns a documented response.
