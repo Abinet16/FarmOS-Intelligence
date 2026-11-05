@@ -17,6 +17,18 @@ once in [`packages/shared-types/src/roles.ts`](../../packages/shared-types/src/r
 | `audit:view`                    |  ✅   |   ✅    |            |              |              |   ✅    |
 | `ai:query`                      |  ✅   |   ✅    |     ✅     |              |      ✅      |         |
 
+## Enforcement
+
+1. `AuthGuard` (global) rejects requests without a valid session with **401**.
+2. `TenantGuard` (global) runs on every route with an `:organizationId` parameter. It loads the
+   caller's membership. No membership gives **404**, the same response as a missing
+   organization, so IDs cannot be probed.
+3. `@RequirePermission(...)` lists the permissions a route needs. Missing ones give **403**.
+   Using the decorator on a route without `:organizationId` is a server error, so a permission
+   check can never be skipped silently.
+4. Inside the request, data access runs through `withTenant`, so row-level security limits the
+   database to the same organization.
+
 ## Rules
 
 - Every permission is evaluated **inside one organization**. An auditor in org A has no
@@ -25,3 +37,6 @@ once in [`packages/shared-types/src/roles.ts`](../../packages/shared-types/src/r
 - `reports:view-limited` means a field worker sees their own recent entries and their
   assigned batches only; the exact scope is defined with the reports module (week 8).
 - Frontend role-based rendering is for usability only. The API is the security boundary.
+- An organization always keeps at least one owner. Demoting or removing the last owner is
+  rejected with **409**, and owner rows are locked during the check so concurrent requests cannot
+  both succeed.
