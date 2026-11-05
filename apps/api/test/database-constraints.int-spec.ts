@@ -4,12 +4,20 @@ import { PrismaClient } from '../src/generated/prisma/client.js';
 
 /**
  * Proves the database enforces integrity on its own, independent of the
- * application layer. Each test creates its own organizations so tests can run
- * against a shared database without cleanup ordering problems.
+ * application layer. Connects as the schema owner, which bypasses row-level
+ * security, so only constraints and triggers stand in the way.
  */
 describe('database constraints', () => {
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+    adapter: new PrismaPg({ connectionString: process.env.MIGRATION_DATABASE_URL }),
+  });
+  let actorId: string;
+
+  beforeAll(async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Recorder', email: `recorder-${randomUUID()}@example.test` },
+    });
+    actorId = user.id;
   });
 
   afterAll(() => prisma.$disconnect());
@@ -63,7 +71,7 @@ describe('database constraints', () => {
             batchId: batch.id,
             logDate: new Date('2026-10-02'),
             eggsCollected: 100,
-            createdBy: randomUUID(),
+            createdBy: actorId,
           },
         }),
       ).rejects.toThrow();
@@ -79,7 +87,7 @@ describe('database constraints', () => {
         batchId: batch.id,
         logDate: new Date('2026-10-02'),
         eggsCollected: 4100,
-        createdBy: randomUUID(),
+        createdBy: actorId,
       };
 
       await prisma.productionLog.create({ data: log });
@@ -100,7 +108,7 @@ describe('database constraints', () => {
             eventDate: new Date('2026-10-02'),
             quantity: -3,
             reasonCode: 'UNKNOWN',
-            recordedBy: randomUUID(),
+            recordedBy: actorId,
           },
         }),
       ).rejects.toThrow(/mortality_events_quantity_check/);
@@ -122,6 +130,26 @@ describe('database constraints', () => {
           },
         }),
       ).rejects.toThrow(/flock_batches_initial_birds_check/);
+    });
+  });
+
+  describe('actor references', () => {
+    it('rejects a record attributed to a user that does not exist', async () => {
+      const org = await createOrg('Actor');
+      const { batch } = await createBatch(org.id);
+
+      await expect(
+        prisma.mortalityEvent.create({
+          data: {
+            organizationId: org.id,
+            batchId: batch.id,
+            eventDate: new Date('2026-10-02'),
+            quantity: 1,
+            reasonCode: 'UNKNOWN',
+            recordedBy: randomUUID(),
+          },
+        }),
+      ).rejects.toThrow();
     });
   });
 
