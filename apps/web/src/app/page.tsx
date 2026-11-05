@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 const milestones = [
   { name: 'v0.1 — Secure foundation', state: 'In progress' },
   { name: 'v0.2 — Farm operations', state: 'Planned' },
@@ -14,6 +16,14 @@ export default function Home() {
         <p className="text-zinc-600 dark:text-zinc-400">
           Farm operations and decision support, starting with poultry production.
         </p>
+        <div className="mt-2 flex gap-3">
+          <Link href="/sign-in" className="btn-primary">
+            Sign in
+          </Link>
+          <Link href="/sign-up" className="btn-secondary">
+            Create account
+          </Link>
+        </div>
       </header>
       <section aria-labelledby="milestones" className="flex flex-col gap-3">
         <h2 id="milestones" className="text-lg font-medium">
