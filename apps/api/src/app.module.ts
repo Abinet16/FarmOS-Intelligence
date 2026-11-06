@@ -7,7 +7,10 @@ import { ConfigModule } from './config/config.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { FarmsModule } from './modules/farms/farms.module.js';
+import { FlockBatchesModule } from './modules/flock-batches/flock-batches.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { HousesModule } from './modules/houses/houses.module.js';
 import { MembershipsModule } from './modules/memberships/memberships.module.js';
 import { OrganizationsModule } from './modules/organizations/organizations.module.js';
 import { UsersModule } from './modules/users/users.module.js';
@@ -22,6 +25,9 @@ import { UsersModule } from './modules/users/users.module.js';
     UsersModule,
     OrganizationsModule,
     MembershipsModule,
+    FarmsModule,
+    HousesModule,
+    FlockBatchesModule,
   ],
   providers: [
     // Global guards run in registration order: authenticate, then resolve tenant.
