@@ -21,6 +21,9 @@ describe('query parameters', () => {
   it('defaults and bounds pagination', () => {
     expect(pageQuery.parse({})).toEqual({ page: 1, pageSize: 20 });
     expect(pageQuery.safeParse({ pageSize: '500' }).success).toBe(false);
-    expect(pageArgs(pageQuery.parse({ page: '3', pageSize: '10' }))).toEqual({ skip: 20, take: 10 });
+    expect(pageArgs(pageQuery.parse({ page: '3', pageSize: '10' }))).toEqual({
+      skip: 20,
+      take: 10,
+    });
   });
 });
