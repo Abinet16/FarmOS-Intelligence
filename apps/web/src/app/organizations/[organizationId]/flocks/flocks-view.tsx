@@ -11,7 +11,7 @@ import { api, queryString, type FlockBatch, type House, type Page } from '@/lib/
 import { formatCount, formatDate, humanize } from '@/lib/format';
 import { useCan, useOrganization } from '@/lib/organization-context';
 
-export default function FlocksPage() {
+export function FlocksView() {
   const organization = useOrganization();
   const canConfigure = useCan('farm:configure');
   const queryClient = useQueryClient();

@@ -10,7 +10,7 @@ import { api, queryString, type Farm, type House, type Page } from '@/lib/api';
 import { formatCount } from '@/lib/format';
 import { useCan, useOrganization } from '@/lib/organization-context';
 
-export default function FarmPage() {
+export function FarmView() {
   const { farmId } = useParams<{ farmId: string }>();
   const organization = useOrganization();
   const canConfigure = useCan('farm:configure');

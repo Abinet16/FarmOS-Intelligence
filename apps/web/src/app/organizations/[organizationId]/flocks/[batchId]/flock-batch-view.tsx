@@ -18,7 +18,7 @@ const ACTION_LABELS: Record<BatchStatus, string> = {
   CLOSED: 'Close batch',
 };
 
-export default function FlockBatchPage() {
+export function FlockBatchView() {
   const { batchId } = useParams<{ batchId: string }>();
   const organization = useOrganization();
   const canConfigure = useCan('farm:configure');

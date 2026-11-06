@@ -9,7 +9,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { api, queryString, type Farm, type Page } from '@/lib/api';
 import { useCan, useOrganization } from '@/lib/organization-context';
 
-export default function FarmsPage() {
+export function FarmsView() {
   const organization = useOrganization();
   const canConfigure = useCan('farm:configure');
   const queryClient = useQueryClient();
