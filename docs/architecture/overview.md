@@ -7,7 +7,7 @@ module boundaries, a separate background worker, and a Next.js web client. See
 ```mermaid
 flowchart TB
   subgraph Client
-    WEB[Next.js web app<br/>TypeScript · Ant Design · Tailwind]
+    WEB[Next.js web app<br/>TypeScript · Tailwind · TanStack Query]
   end
 
   subgraph API["NestJS API (apps/api)"]

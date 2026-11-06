@@ -4,17 +4,17 @@ A multi-tenant farm operations and decision-support platform, starting with poul
 Farm teams record daily operations; managers get validated metrics, threshold alerts, and an AI
 assistant whose answers are grounded in their own records.
 
-> **Status:** v0.1 (Secure foundation) is in progress. See the [roadmap](#roadmap).
+> **Status:** v0.1 (Secure foundation) is done; v0.2 (Farm operations) is in progress. See the [roadmap](#roadmap).
 
 ## Stack
 
-| Layer    | Choice                                                     |
-| -------- | ---------------------------------------------------------- |
-| Web      | Next.js (App Router), TypeScript, Tailwind CSS, Ant Design |
-| API      | NestJS, Prisma 7, PostgreSQL 17                            |
-| Jobs     | Redis + BullMQ                                             |
-| Tooling  | pnpm workspaces, Turborepo, ESLint, Prettier, Vitest       |
-| Delivery | Docker, GitHub Actions                                     |
+| Layer    | Choice                                                         |
+| -------- | -------------------------------------------------------------- |
+| Web      | Next.js (App Router), TypeScript, Tailwind CSS, TanStack Query |
+| API      | NestJS, Prisma 7, PostgreSQL 17                                |
+| Jobs     | Redis + BullMQ                                                 |
+| Tooling  | pnpm workspaces, Turborepo, ESLint, Prettier, Vitest           |
+| Delivery | Docker, GitHub Actions                                         |
 
 ## Quick start
 
@@ -31,7 +31,8 @@ pnpm --filter @farmos/api db:app-user            # create the RLS-restricted run
 pnpm dev                                         # API on :4000, web on :3000
 ```
 
-Then open http://localhost:3000, create an account, and create an organization.
+Then open http://localhost:3000, create an account and an organization, then add farms,
+houses and flocks.
 
 Check the API:
 
