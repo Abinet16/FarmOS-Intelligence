@@ -58,6 +58,14 @@ enum BatchStatus {
   @@map("batch_status")
 }
 
+enum FlockPurpose {
+  LAYER
+  BROILER
+  BREEDER
+
+  @@map("flock_purpose")
+}
+
 enum RecordStatus {
   SUBMITTED
   APPROVED
@@ -273,12 +281,13 @@ model Membership {
 // ─────────────────────── Farm structure ───────────────────────
 
 model Farm {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
   name           String
   location       String?
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt     DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   houses             House[]
@@ -290,13 +299,14 @@ model Farm {
 }
 
 model House {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  farmId         String   @map("farm_id") @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  farmId         String    @map("farm_id") @db.Uuid
   name           String
   capacity       Int
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt     DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   farm         Farm         @relation(fields: [organizationId, farmId], references: [organizationId, id], onDelete: Restrict)
@@ -308,16 +318,19 @@ model House {
 }
 
 model FlockBatch {
-  id             String      @id @default(uuid()) @db.Uuid
-  organizationId String      @map("organization_id") @db.Uuid
-  houseId        String      @map("house_id") @db.Uuid
-  batchCode      String      @map("batch_code")
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  houseId        String       @map("house_id") @db.Uuid
+  batchCode      String       @map("batch_code")
   breed          String
-  placementDate  DateTime    @map("placement_date") @db.Date
-  initialBirds   Int         @map("initial_birds")
-  status         BatchStatus @default(PLANNED)
-  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  purpose        FlockPurpose @default(LAYER)
+  placementDate  DateTime     @map("placement_date") @db.Date
+  endDate        DateTime?    @map("end_date") @db.Date
+  initialBirds   Int          @map("initial_birds")
+  status         BatchStatus  @default(PLANNED)
+  notes          String?
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   house              House               @relation(fields: [organizationId, houseId], references: [organizationId, id], onDelete: Restrict)
