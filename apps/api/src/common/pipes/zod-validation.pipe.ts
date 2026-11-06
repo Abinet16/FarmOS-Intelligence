@@ -19,3 +19,8 @@ export class ZodValidationPipe<S extends z.ZodType> implements PipeTransform<unk
     return result.data;
   }
 }
+
+/** A 400 in the same shape as schema failures, for rules that need the database. */
+export function invalidField(path: string, message: string): BadRequestException {
+  return new BadRequestException({ message: 'Validation failed', issues: [{ path, message }] });
+}
