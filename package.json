@@ -17,7 +17,7 @@
     "format:check": "prettier --check .",
     "db:up": "docker compose up -d postgres redis",
     "db:down": "docker compose down",
-    "db:migrate": "pnpm --filter @farmos/api prisma:migrate:dev",
+    "db:migration:new": "pnpm --filter @farmos/api db:migration:new",
     "db:generate": "pnpm --filter @farmos/api prisma:generate"
   },
   "devDependencies": {

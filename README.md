@@ -42,14 +42,14 @@ curl localhost:4000/health/ready   # {"status":"ok","checks":{"database":"up"}}
 
 ## Common commands
 
-| Command                 | What it does                                             |
-| ----------------------- | -------------------------------------------------------- |
-| `pnpm lint`             | ESLint across all packages                               |
-| `pnpm typecheck`        | TypeScript checks across all packages                    |
-| `pnpm test`             | Unit tests                                               |
-| `pnpm test:integration` | Integration tests against the database in `DATABASE_URL` |
-| `pnpm db:migrate`       | Create and apply a new migration from `schema.prisma`    |
-| `pnpm format`           | Prettier                                                 |
+| Command                 | What it does                                               |
+| ----------------------- | ---------------------------------------------------------- |
+| `pnpm lint`             | ESLint across all packages                                 |
+| `pnpm typecheck`        | TypeScript checks across all packages                      |
+| `pnpm test`             | Unit tests                                                 |
+| `pnpm test:integration` | Integration tests against the database in `DATABASE_URL`   |
+| `pnpm db:migration:new` | Write a migration from `schema.prisma` changes (see below) |
+| `pnpm format`           | Prettier                                                   |
 
 ## Documentation
 
