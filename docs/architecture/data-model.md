@@ -46,13 +46,15 @@ erDiagram
 | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Tenant consistency.** A row can only reference parents in the same organization. | Every tenant-owned parent has `UNIQUE (organization_id, id)`; children reference it with a composite FK `(organization_id, parent_id)`. A house in org A cannot point at a farm in org B, even if application code has a bug. |
 | **One production log per batch per day.**                                          | `UNIQUE (organization_id, batch_id, log_date)`                                                                                                                                                                                |
+| **One active flock per house.**                                                    | Partial unique index `flock_batches (organization_id, house_id) WHERE status = 'ACTIVE'`                                                                                                                                      |
+| **A flock's end date matches its status.**                                         | `CHECK` constraints: `end_date` is set exactly when status is `DEPLETED` or `CLOSED`, and never precedes `placement_date`                                                                                                     |
 | **Unique batch codes per tenant.**                                                 | `UNIQUE (organization_id, batch_code)`                                                                                                                                                                                        |
 | **Non-negative quantities.**                                                       | `CHECK` constraints in the initial migration                                                                                                                                                                                  |
 | **Append-only audit history.**                                                     | Trigger rejects `UPDATE` and `DELETE` on `audit_logs`                                                                                                                                                                         |
 | **No silent overwrite of approved records.**                                       | Changes go through `production_log_corrections` and are applied only after approval                                                                                                                                           |
 | **Inventory integrity.**                                                           | Every stock change is an `inventory_movements` row; balances are derived                                                                                                                                                      |
 | **Idempotent jobs.**                                                               | `alerts (organization_id, dedupe_key)` and `report_jobs (organization_id, idempotency_key)` are unique                                                                                                                        |
-| **No cascading deletes of history.**                                               | All foreign keys use `ON DELETE RESTRICT`; entities are archived via status                                                                                                                                                   |
+| **No cascading deletes of history.**                                               | All foreign keys use `ON DELETE RESTRICT`; farms and houses are archived (`archived_at`), never deleted                                                                                                                       |
 
 ## Identity tables
 
@@ -66,3 +68,12 @@ Sessions and accounts cascade-delete with their user; nothing else does.
   other tenant-owned table.
 - `production_logs` gained `status`, `approved_by` and `approved_at`, and a
   `production_log_corrections` table was added to implement the correction workflow.
+
+## Changing the schema
+
+Edit `schema.prisma`, then run `pnpm db:migration:new <snake_case_name>`. It writes the SQL that
+takes the database to the schema, without applying it. Append any raw SQL (CHECK constraints,
+partial indexes, policies, grants for new tables), then apply it with
+`pnpm --filter @farmos/api prisma:migrate:deploy`. CI fails if the migrations and the schema
+drift apart. `prisma migrate dev` is not used; see
+[ADR-0006](../decisions/0006-farm-structure.md#consequences).
