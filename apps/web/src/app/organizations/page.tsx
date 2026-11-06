@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, type FormEvent } from 'react';
 import { api, ApiError, type Organization } from '@/lib/api';
@@ -87,7 +88,12 @@ export default function OrganizationsPage() {
           {organizations.data.map((org) => (
             <li key={org.id} className="flex items-center justify-between gap-4 px-4 py-3">
               <div>
-                <p className="font-medium">{org.name}</p>
+                <Link
+                  href={`/organizations/${org.id}/farms`}
+                  className="font-medium hover:underline"
+                >
+                  {org.name}
+                </Link>
                 <p className="text-sm text-zinc-500">{org.timezone}</p>
               </div>
               <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium dark:bg-zinc-800">
