@@ -1,4 +1,4 @@
-import type { Role } from '@farmos/shared-types';
+import type { BatchStatus, FlockPurpose, Role } from '@farmos/shared-types';
 import { API_URL } from './config';
 
 export class ApiError extends Error {
@@ -35,4 +35,58 @@ export interface Organization {
   slug: string;
   timezone: string;
   role: Role;
+}
+
+export interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** Builds a query string, leaving out empty values. */
+export function queryString(params: Record<string, string | number | boolean | undefined>) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '' && value !== false) search.set(key, String(value));
+  }
+  const text = search.toString();
+  return text ? `?${text}` : '';
+}
+
+export interface Farm {
+  id: string;
+  name: string;
+  location: string | null;
+  archivedAt: string | null;
+  houseCount: number;
+}
+
+export interface House {
+  id: string;
+  name: string;
+  capacity: number;
+  archivedAt: string | null;
+  farm: { id: string; name: string; archivedAt: string | null };
+  activeBatch: {
+    id: string;
+    batchCode: string;
+    breed: string;
+    initialBirds: number;
+    placementDate: string;
+  } | null;
+}
+
+export interface FlockBatch {
+  id: string;
+  batchCode: string;
+  breed: string;
+  purpose: FlockPurpose;
+  status: BatchStatus;
+  placementDate: string;
+  endDate: string | null;
+  initialBirds: number;
+  notes: string | null;
+  ageDays: number | null;
+  house: { id: string; name: string; farm: { id: string; name: string } };
 }
