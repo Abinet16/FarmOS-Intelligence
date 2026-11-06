@@ -133,6 +133,55 @@ describe('database constraints', () => {
     });
   });
 
+  describe('flock lifecycle', () => {
+    it('allows only one active batch per house', async () => {
+      const org = await createOrg('Life');
+      const { house, batch } = await createBatch(org.id);
+      await prisma.flockBatch.update({ where: { id: batch.id }, data: { status: 'ACTIVE' } });
+
+      await expect(
+        prisma.flockBatch.create({
+          data: {
+            organizationId: org.id,
+            houseId: house.id,
+            batchCode: 'SECOND',
+            breed: 'Ross 308',
+            placementDate: new Date('2026-10-05'),
+            initialBirds: 10,
+            status: 'ACTIVE',
+          },
+        }),
+      ).rejects.toThrow(/flock_batches_one_active_per_house|Unique constraint/);
+    });
+
+    it('requires an end date exactly when a batch has ended', async () => {
+      const org = await createOrg('Life');
+      const { batch } = await createBatch(org.id);
+
+      await expect(
+        prisma.flockBatch.update({ where: { id: batch.id }, data: { status: 'DEPLETED' } }),
+      ).rejects.toThrow(/flock_batches_end_date_status_check/);
+      await expect(
+        prisma.flockBatch.update({
+          where: { id: batch.id },
+          data: { endDate: new Date('2026-11-01') },
+        }),
+      ).rejects.toThrow(/flock_batches_end_date_status_check/);
+    });
+
+    it('rejects an end date before placement', async () => {
+      const org = await createOrg('Life');
+      const { batch } = await createBatch(org.id);
+
+      await expect(
+        prisma.flockBatch.update({
+          where: { id: batch.id },
+          data: { status: 'DEPLETED', endDate: new Date('2026-09-01') },
+        }),
+      ).rejects.toThrow(/flock_batches_end_date_check/);
+    });
+  });
+
   describe('actor references', () => {
     it('rejects a record attributed to a user that does not exist', async () => {
       const org = await createOrg('Actor');
