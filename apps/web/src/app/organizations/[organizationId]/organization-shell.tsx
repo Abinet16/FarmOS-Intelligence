@@ -12,6 +12,7 @@ import { OrganizationProvider } from '@/lib/organization-context';
 const SECTIONS = [
   { href: 'farms', label: 'Farms & houses' },
   { href: 'flocks', label: 'Flocks' },
+  { href: 'feed-types', label: 'Feed types' },
 ] as const;
 
 export function OrganizationShell({ children }: { children: ReactNode }) {
