@@ -115,6 +115,58 @@ Lifecycle: `PLANNED → ACTIVE → DEPLETED → CLOSED`, or `PLANNED → CLOSED`
 Invalid transitions and rule conflicts return 409. Field-level problems (too many birds for
 the house, a bad depletion date) return 400 with `issues`.
 
+## Feed types
+
+Base: `/api/v1/organizations/:organizationId/feed-types`. Feed is always recorded in kilograms.
+
+| Method | Path           | Permission       | Body                                 |
+| ------ | -------------- | ---------------- | ------------------------------------ |
+| GET    | `/`            | member           | — (sorted by name)                   |
+| POST   | `/`            | `farm:configure` | `{ name }` — unique per organization |
+| PATCH  | `/:feedTypeId` | `farm:configure` | `{ name }`                           |
+
+## Daily records
+
+Base: `/api/v1/organizations/:organizationId/flock-batches/:batchId`.
+
+| Method | Path                              | Permission                      | Body / query                                |
+| ------ | --------------------------------- | ------------------------------- | ------------------------------------------- |
+| POST   | `/daily-entries`                  | `production:record`             | Daily entry (below)                         |
+| GET    | `/records`                        | member                          | `from`, `to` — raw records, newest first    |
+| GET    | `/daily-metrics`                  | member                          | `from`, `to` — defaults to the last 14 days |
+| PATCH  | `/production-logs/:logId`         | `production:record`             | `{ eggsCollected?, waterLitres?, notes? }`  |
+| POST   | `/production-logs/:logId/approve` | `production:approve-correction` | —                                           |
+
+A daily entry saves everything in one transaction; every part is optional, but at least one
+must be present:
+
+```json
+{
+  "date": "2026-11-06",
+  "eggsCollected": 4120,
+  "waterLitres": 860.5,
+  "notes": "Fan 2 serviced",
+  "deaths": [{ "quantity": 3, "reasonCode": "HEAT_STRESS" }],
+  "feed": [{ "feedTypeId": "…", "quantityKg": 520 }],
+  "weight": { "sampleSize": 50, "averageWeightGrams": 1510 }
+}
+```
+
+Rules (400 with `issues` unless noted):
+
+- The flock must be `ACTIVE`, or `DEPLETED` with the date on or before its end date (409
+  otherwise). The date must be within the flock's life and not in the future.
+- Total deaths can't exceed the birds placed.
+- Laying flocks must include `eggsCollected` with any production data, at most the birds alive
+  that day. Broiler flocks can't record eggs.
+- One production log per flock per day: a second one is a 409. Edit it with PATCH instead.
+- Approved logs are locked (409) and change only through corrections (week 5).
+
+`daily-metrics` returns `{ from, to, days: DailyMetrics[] }`, newest first, with the fields
+defined in [metric definitions](../architecture/metrics.md). `null` means nothing was
+recorded. The range can span at most 366 days. Flock batch responses also include `liveBirds`
+and `cumulativeMortalityPct`.
+
 ## Audit log
 
 | Method | Path                                               | Permission   | Query                                          |
@@ -126,4 +178,5 @@ Response: `{ items: AuditLog[], nextCursor: string | null }`, newest first.
 Audited actions so far: `organization.created`, `organization.updated`, `membership.created`,
 `membership.role_changed`, `membership.removed`, `farm.created`, `farm.updated`, `farm.archived`,
 `farm.restored`, `house.created`, `house.updated`, `house.archived`, `house.restored`,
-`flock_batch.created`, `flock_batch.updated`, `flock_batch.status_changed`.
+`flock_batch.created`, `flock_batch.updated`, `flock_batch.status_changed`, `feed_type.created`,
+`feed_type.renamed`, `daily_entry.recorded`, `production_log.updated`, `production_log.approved`.
