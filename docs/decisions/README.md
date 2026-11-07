@@ -8,3 +8,4 @@
 | [0004](0004-esm-and-vitest.md)      | ESM and Vitest            | Accepted |
 | [0005](0005-authentication.md)      | Authentication            | Accepted |
 | [0006](0006-farm-structure.md)      | Farm structure            | Accepted |
+| [0007](0007-daily-records.md)       | Daily flock records       | Accepted |
