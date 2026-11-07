@@ -16,6 +16,19 @@ const envSchema = z.object({
     ),
   BETTER_AUTH_URL: z.string().url(),
   BETTER_AUTH_SECRET: z.string().min(32, 'must be at least 32 characters'),
+  /**
+   * Express `trust proxy`: how to find the client address behind a load
+   * balancer. A hop count ("1"), "true", or a list of proxy addresses/subnets.
+   * Defaults to trusting nothing, which is right when clients connect directly.
+   */
+  TRUST_PROXY: z
+    .string()
+    .optional()
+    .transform((value): boolean | number | string => {
+      if (!value || value === 'false') return false;
+      if (value === 'true') return true;
+      return /^\d+$/.test(value) ? Number(value) : value;
+    }),
 });
 
 export type Env = z.infer<typeof envSchema>;

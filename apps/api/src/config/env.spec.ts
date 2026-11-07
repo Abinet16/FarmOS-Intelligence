@@ -19,6 +19,15 @@ describe('loadEnv', () => {
     expect(env.CORS_ORIGINS).toEqual(['https://a.example', 'https://b.example']);
   });
 
+  it('parses the trust proxy setting', () => {
+    expect(loadEnv(valid).TRUST_PROXY).toBe(false);
+    expect(loadEnv({ ...valid, TRUST_PROXY: '1' }).TRUST_PROXY).toBe(1);
+    expect(loadEnv({ ...valid, TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true);
+    expect(loadEnv({ ...valid, TRUST_PROXY: 'loopback, 10.0.0.0/8' }).TRUST_PROXY).toBe(
+      'loopback, 10.0.0.0/8',
+    );
+  });
+
   it('rejects a missing DATABASE_URL', () => {
     const { DATABASE_URL: _omit, ...rest } = valid;
     expect(() => loadEnv(rest)).toThrow(/DATABASE_URL/);
