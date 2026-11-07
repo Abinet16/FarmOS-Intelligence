@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { CLIENT_IP_HEADER } from '../../common/client-ip.middleware.js';
 import type { Env } from '../../config/env.js';
 import type { PrismaService } from '../../database/prisma.service.js';
 
@@ -35,6 +36,8 @@ export function createAuth(prisma: PrismaService, env: Env) {
       },
     },
     advanced: {
+      // Set by the clientIp middleware from Express's resolved address.
+      ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
       useSecureCookies: env.NODE_ENV === 'production',
       database: { generateId: () => randomUUID() },
     },

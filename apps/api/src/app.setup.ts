@@ -3,6 +3,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { toNodeHandler } from 'better-auth/node';
 import express from 'express';
 import helmet from 'helmet';
+import { clientIp } from './common/client-ip.middleware.js';
 import { originCheck } from './common/origin-check.middleware.js';
 import { ENV } from './config/config.module.js';
 import type { Env } from './config/env.js';
@@ -19,10 +20,11 @@ export function configureApp(app: INestApplication): INestApplication {
   const auth = app.get<Auth>(AUTH);
   const server = (app as NestExpressApplication).getHttpAdapter().getInstance();
 
+  server.set('trust proxy', env.TRUST_PROXY);
   app.use(helmet());
   app.enableCors({ origin: env.CORS_ORIGINS, credentials: true });
   app.use(originCheck(env.CORS_ORIGINS));
-  server.all('/api/auth/{*path}', toNodeHandler(auth));
+  server.all('/api/auth/{*path}', clientIp, toNodeHandler(auth));
   app.use(express.json({ limit: '100kb' }));
   app.setGlobalPrefix('api/v1', { exclude: ['health/live', 'health/ready'] });
   app.enableShutdownHooks();
