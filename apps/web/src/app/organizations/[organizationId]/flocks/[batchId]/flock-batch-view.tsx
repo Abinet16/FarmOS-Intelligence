@@ -8,8 +8,11 @@ import { useState } from 'react';
 import { ErrorMessage } from '@/components/error-message';
 import { StatusBadge } from '@/components/status-badge';
 import { api, type FlockBatch } from '@/lib/api';
-import { formatCount, formatDate, humanize } from '@/lib/format';
+import { formatCount, formatDate, formatPercent, humanize } from '@/lib/format';
 import { useCan, useOrganization } from '@/lib/organization-context';
+import { DailyEntryForm } from './daily-entry-form';
+import { DailyMetricsTable } from './daily-metrics-table';
+import { ProductionLogs } from './production-logs';
 
 const ACTION_LABELS: Record<BatchStatus, string> = {
   PLANNED: 'Plan',
@@ -22,6 +25,7 @@ export function FlockBatchView() {
   const { batchId } = useParams<{ batchId: string }>();
   const organization = useOrganization();
   const canConfigure = useCan('farm:configure');
+  const canRecord = useCan('production:record');
   const queryClient = useQueryClient();
   const base = `/organizations/${organization.id}`;
   const [depletionDate, setDepletionDate] = useState('');
@@ -65,6 +69,8 @@ export function FlockBatchView() {
     ['Breed', b.breed],
     ['Purpose', humanize(b.purpose)],
     ['Birds placed', formatCount(b.initialBirds)],
+    ['Live birds', formatCount(b.liveBirds)],
+    ['Cumulative mortality', formatPercent(b.cumulativeMortalityPct)],
     ['Placement date', formatDate(b.placementDate)],
     ['End date', formatDate(b.endDate)],
     ['Age', b.ageDays === null ? '—' : `${b.ageDays} days`],
@@ -94,6 +100,14 @@ export function FlockBatchView() {
       </dl>
 
       {b.notes && <p className="text-sm text-zinc-600 dark:text-zinc-400">{b.notes}</p>}
+
+      {canRecord && (b.status === 'ACTIVE' || b.status === 'DEPLETED') && (
+        <DailyEntryForm batch={b} />
+      )}
+
+      <DailyMetricsTable batch={b} />
+
+      <ProductionLogs batch={b} />
 
       {canConfigure && next.length > 0 && (
         <section aria-labelledby="lifecycle" className="flex flex-col gap-3">
