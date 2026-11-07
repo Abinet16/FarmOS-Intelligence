@@ -39,6 +39,9 @@ erDiagram
   are `date` and are interpreted in the organization's `timezone`.
 - **Naming:** snake_case tables and columns; Prisma models map to them with `@@map`/`@map`.
 - **Quantities:** counts are `integer`; masses and volumes are `numeric` to avoid float drift.
+  Feed is always in kilograms (`quantity_kg`). The API returns numerics as JSON numbers.
+- **Mortality causes** are the `mortality_reason` enum (disease, injury, predator, heat stress,
+  culled, unknown, other).
 
 ## Integrity rules
 
@@ -48,6 +51,7 @@ erDiagram
 | **One production log per batch per day.**                                          | `UNIQUE (organization_id, batch_id, log_date)`                                                                                                                                                                                |
 | **One active flock per house.**                                                    | Partial unique index `flock_batches (organization_id, house_id) WHERE status = 'ACTIVE'`                                                                                                                                      |
 | **A flock's end date matches its status.**                                         | `CHECK` constraints: `end_date` is set exactly when status is `DEPLETED` or `CLOSED`, and never precedes `placement_date`                                                                                                     |
+| **Approval is all-or-nothing.**                                                    | `CHECK`: `approved_by` and `approved_at` are set exactly when a production log is `APPROVED`                                                                                                                                  |
 | **Unique batch codes per tenant.**                                                 | `UNIQUE (organization_id, batch_code)`                                                                                                                                                                                        |
 | **Non-negative quantities.**                                                       | `CHECK` constraints in the initial migration                                                                                                                                                                                  |
 | **Append-only audit history.**                                                     | Trigger rejects `UPDATE` and `DELETE` on `audit_logs`                                                                                                                                                                         |
