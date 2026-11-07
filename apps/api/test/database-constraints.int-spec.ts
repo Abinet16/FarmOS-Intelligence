@@ -182,6 +182,53 @@ describe('database constraints', () => {
     });
   });
 
+  describe('record integrity', () => {
+    it('sets approval fields exactly when a log is approved', async () => {
+      const org = await createOrg('Approve');
+      const { batch } = await createBatch(org.id);
+      const log = await prisma.productionLog.create({
+        data: {
+          organizationId: org.id,
+          batchId: batch.id,
+          logDate: new Date('2026-10-02'),
+          eggsCollected: 10,
+          createdBy: actorId,
+        },
+      });
+
+      await expect(
+        prisma.productionLog.update({ where: { id: log.id }, data: { status: 'APPROVED' } }),
+      ).rejects.toThrow(/production_logs_approval_check/);
+      await expect(
+        prisma.productionLog.update({
+          where: { id: log.id },
+          data: { status: 'APPROVED', approvedBy: actorId, approvedAt: new Date() },
+        }),
+      ).resolves.toMatchObject({ status: 'APPROVED' });
+    });
+
+    it('rejects zero or negative feed quantities', async () => {
+      const org = await createOrg('Feed');
+      const { batch } = await createBatch(org.id);
+      const feedType = await prisma.feedType.create({
+        data: { organizationId: org.id, name: 'Starter' },
+      });
+
+      await expect(
+        prisma.feedUsage.create({
+          data: {
+            organizationId: org.id,
+            batchId: batch.id,
+            feedTypeId: feedType.id,
+            usageDate: new Date('2026-10-02'),
+            quantityKg: 0,
+            recordedBy: actorId,
+          },
+        }),
+      ).rejects.toThrow(/feed_usage_quantity_kg_check/);
+    });
+  });
+
   describe('actor references', () => {
     it('rejects a record attributed to a user that does not exist', async () => {
       const org = await createOrg('Actor');
