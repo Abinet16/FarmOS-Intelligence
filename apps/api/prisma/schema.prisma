@@ -66,6 +66,18 @@ enum FlockPurpose {
   @@map("flock_purpose")
 }
 
+enum MortalityReason {
+  DISEASE
+  INJURY
+  PREDATOR
+  HEAT_STRESS
+  CULLED
+  UNKNOWN
+  OTHER
+
+  @@map("mortality_reason")
+}
+
 enum RecordStatus {
   SUBMITTED
   APPROVED
@@ -402,15 +414,15 @@ model ProductionLogCorrection {
 }
 
 model MortalityEvent {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  batchId        String   @map("batch_id") @db.Uuid
-  eventDate      DateTime @map("event_date") @db.Date
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @map("organization_id") @db.Uuid
+  batchId        String          @map("batch_id") @db.Uuid
+  eventDate      DateTime        @map("event_date") @db.Date
   quantity       Int
-  reasonCode     String   @map("reason_code")
+  reasonCode     MortalityReason @map("reason_code")
   notes          String?
-  recordedBy     String   @map("recorded_by") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  recordedBy     String          @map("recorded_by") @db.Uuid
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   recorder     User         @relation("MortalityRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
@@ -424,7 +436,6 @@ model FeedType {
   id             String   @id @default(uuid()) @db.Uuid
   organizationId String   @map("organization_id") @db.Uuid
   name           String
-  unit           String
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -442,7 +453,7 @@ model FeedUsage {
   batchId        String   @map("batch_id") @db.Uuid
   feedTypeId     String   @map("feed_type_id") @db.Uuid
   usageDate      DateTime @map("usage_date") @db.Date
-  quantity       Decimal  @db.Decimal(12, 3)
+  quantityKg     Decimal  @map("quantity_kg") @db.Decimal(12, 3)
   recordedBy     String   @map("recorded_by") @db.Uuid
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
