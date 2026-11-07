@@ -1,4 +1,10 @@
-import type { BatchStatus, FlockPurpose, Role } from '@farmos/shared-types';
+import type {
+  BatchStatus,
+  FlockPurpose,
+  MortalityReason,
+  RecordStatus,
+  Role,
+} from '@farmos/shared-types';
 import { API_URL } from './config';
 
 export class ApiError extends Error {
@@ -88,5 +94,72 @@ export interface FlockBatch {
   initialBirds: number;
   notes: string | null;
   ageDays: number | null;
+  liveBirds: number;
+  cumulativeMortalityPct: number;
   house: { id: string; name: string; farm: { id: string; name: string } };
+}
+
+export interface FeedType {
+  id: string;
+  name: string;
+}
+
+interface Person {
+  id: string;
+  name: string;
+}
+
+export interface ProductionLog {
+  id: string;
+  logDate: string;
+  eggsCollected: number;
+  waterLitres: number | null;
+  notes: string | null;
+  status: RecordStatus;
+  creator: Person;
+  approver: Person | null;
+  approvedAt: string | null;
+}
+
+export interface FlockRecords {
+  productionLogs: ProductionLog[];
+  mortality: {
+    id: string;
+    eventDate: string;
+    quantity: number;
+    reasonCode: MortalityReason;
+    notes: string | null;
+    recorder: Person;
+  }[];
+  feed: {
+    id: string;
+    usageDate: string;
+    quantityKg: number;
+    feedType: FeedType;
+    recorder: Person;
+  }[];
+  weightSamples: {
+    id: string;
+    sampleDate: string;
+    sampleSize: number;
+    averageWeightGrams: number;
+    recorder: Person;
+  }[];
+}
+
+/** One day of flock metrics; see docs/architecture/metrics.md. Null = not recorded. */
+export interface DailyMetrics {
+  date: string;
+  ageDays: number;
+  openingBirds: number;
+  deaths: number;
+  closingBirds: number;
+  mortalityRatePct: number | null;
+  cumulativeMortalityPct: number;
+  eggs: number | null;
+  henDayPct: number | null;
+  feedKg: number | null;
+  feedPerBirdKg: number | null;
+  waterLitres: number | null;
+  averageWeightGrams: number | null;
 }
