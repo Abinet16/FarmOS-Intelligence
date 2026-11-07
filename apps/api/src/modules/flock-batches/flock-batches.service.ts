@@ -1,12 +1,14 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { canTransition, isEnded, type BatchStatus } from '@farmos/shared-types';
 import type { Prisma } from '../../generated/prisma/client.js';
+import { organizationToday } from '../../database/organization-today.js';
 import { PrismaService, type Tx } from '../../database/prisma.service.js';
 import type { TenantContext } from '../../common/request.js';
-import { daysBetween, todayIn } from '../../common/dates.js';
+import { daysBetween } from '../../common/dates.js';
 import { invalidField } from '../../common/pipes/zod-validation.pipe.js';
 import { pageArgs, toPage } from '../../common/query/pagination.js';
 import { AuditService } from '../audit/audit.service.js';
+import { batchTotals } from '../metrics/flock-metrics.js';
 import {
   PLACEMENT_FIELDS,
   type ChangeStatusDto,
@@ -21,11 +23,14 @@ const batchInclude = {
 
 type BatchRow = Prisma.FlockBatchGetPayload<{ include: typeof batchInclude }>;
 
-/** Age in days counts from placement to today, or to the end date once ended. */
-function toBatch(batch: BatchRow, today: Date) {
+/**
+ * Age in days counts from placement to today, or to the end date once ended.
+ * Live birds and cumulative mortality follow docs/architecture/metrics.md.
+ */
+function toBatch(batch: BatchRow, today: Date, deaths: number) {
   const ageDays =
     batch.status === 'PLANNED' ? null : daysBetween(batch.placementDate, batch.endDate ?? today);
-  return { ...batch, ageDays };
+  return { ...batch, ageDays, ...batchTotals(batch, deaths) };
 }
 
 @Injectable()
@@ -50,7 +55,7 @@ export class FlockBatchesService {
       }),
     };
     return this.prisma.withTenant(tenant, async (tx) => {
-      const [items, total, today] = await Promise.all([
+      const [items, total] = await Promise.all([
         tx.flockBatch.findMany({
           where,
           include: batchInclude,
@@ -58,19 +63,14 @@ export class FlockBatchesService {
           ...pageArgs(query),
         }),
         tx.flockBatch.count({ where }),
-        this.today(tx, tenant),
       ]);
-      return toPage(
-        items.map((batch) => toBatch(batch, today)),
-        total,
-        query,
-      );
+      return toPage(await this.present(tx, tenant, items), total, query);
     });
   }
 
   get(tenant: TenantContext, batchId: string) {
     return this.prisma.withTenant(tenant, async (tx) =>
-      toBatch(await this.findOrThrow(tx, tenant, batchId), await this.today(tx, tenant)),
+      this.presentOne(tx, tenant, await this.findOrThrow(tx, tenant, batchId)),
     );
   }
 
@@ -94,7 +94,7 @@ export class FlockBatchesService {
           placementDate: dto.placementDate.toISOString().slice(0, 10),
         },
       });
-      return toBatch(batch, await this.today(tx, tenant));
+      return this.presentOne(tx, tenant, batch);
     });
   }
 
@@ -129,7 +129,7 @@ export class FlockBatchesService {
         entityId: batchId,
         metadata: { fields: Object.keys(dto) },
       });
-      return toBatch(batch, await this.today(tx, tenant));
+      return this.presentOne(tx, tenant, batch);
     });
   }
 
@@ -188,7 +188,7 @@ export class FlockBatchesService {
           endDate: endDate?.toISOString().slice(0, 10) ?? null,
         },
       });
-      return toBatch(updated, today);
+      return this.presentOne(tx, tenant, updated);
     });
   }
 
@@ -240,11 +240,26 @@ export class FlockBatchesService {
     }
   }
 
-  private async today(tx: Tx, tenant: TenantContext) {
-    const { timezone } = await tx.organization.findUniqueOrThrow({
-      where: { id: tenant.organizationId },
-      select: { timezone: true },
-    });
-    return todayIn(timezone);
+  /** Adds age and population figures, loading deaths for all batches in one query. */
+  private async present(tx: Tx, tenant: TenantContext, batches: BatchRow[]) {
+    const [today, deaths] = await Promise.all([
+      this.today(tx, tenant),
+      tx.mortalityEvent.groupBy({
+        by: ['batchId'],
+        where: { organizationId: tenant.organizationId, batchId: { in: batches.map((b) => b.id) } },
+        _sum: { quantity: true },
+      }),
+    ]);
+    const deathsByBatch = new Map(deaths.map((d) => [d.batchId, d._sum.quantity ?? 0]));
+    return batches.map((batch) => toBatch(batch, today, deathsByBatch.get(batch.id) ?? 0));
+  }
+
+  private async presentOne(tx: Tx, tenant: TenantContext, batch: BatchRow) {
+    const [presented] = await this.present(tx, tenant, [batch]);
+    return presented!;
+  }
+
+  private today(tx: Tx, tenant: TenantContext) {
+    return organizationToday(tx, tenant.organizationId);
   }
 }
