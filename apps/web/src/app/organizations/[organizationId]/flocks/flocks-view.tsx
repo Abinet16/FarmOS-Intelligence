@@ -116,7 +116,7 @@ export function FlocksView() {
                 <th className="px-4 py-2 font-medium">Status</th>
                 <th className="px-4 py-2 font-medium">Location</th>
                 <th className="px-4 py-2 font-medium">Placed</th>
-                <th className="px-4 py-2 text-right font-medium">Birds</th>
+                <th className="px-4 py-2 text-right font-medium">Live birds</th>
                 <th className="px-4 py-2 text-right font-medium">Age (days)</th>
               </tr>
             </thead>
@@ -142,7 +142,7 @@ export function FlocksView() {
                   </td>
                   <td className="px-4 py-2">{formatDate(batch.placementDate)}</td>
                   <td className="px-4 py-2 text-right tabular-nums">
-                    {formatCount(batch.initialBirds)}
+                    {formatCount(batch.liveBirds)}
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums">{batch.ageDays ?? '—'}</td>
                 </tr>
