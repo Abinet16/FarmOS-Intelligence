@@ -1,15 +1,21 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, type FormEvent } from 'react';
 import { ErrorMessage } from '@/components/error-message';
-import { api, type FlockBatch, type FlockRecords } from '@/lib/api';
+import { api, type FlockBatch, type FlockRecords, type ProductionLog } from '@/lib/api';
 import { formatCount, formatDate, formatNumber, humanize } from '@/lib/format';
 import { useCan, useOrganization } from '@/lib/organization-context';
 
-/** Recent production logs, with approval for supervisors and above. */
+/**
+ * Recent production logs. Supervisors and above approve them; once approved,
+ * changes are proposed as corrections and reviewed by someone else.
+ */
 export function ProductionLogs({ batch }: { batch: FlockBatch }) {
   const organization = useOrganization();
   const canApprove = useCan('production:approve-correction');
+  const canRecord = useCan('production:record');
+  const [correcting, setCorrecting] = useState<ProductionLog | null>(null);
   const queryClient = useQueryClient();
   const base = `/organizations/${organization.id}/flock-batches/${batch.id}`;
 
@@ -25,6 +31,31 @@ export function ProductionLogs({ batch }: { batch: FlockBatch }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['flock-records', batch.id] }),
   });
 
+  const requestCorrection = useMutation({
+    mutationFn: ({ logId, body }: { logId: string; body: object }) =>
+      api(`${base}/production-logs/${logId}/corrections`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      setCorrecting(null);
+      return queryClient.invalidateQueries({ queryKey: ['corrections', organization.id] });
+    },
+  });
+
+  function onRequestCorrection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!correcting) return;
+    const data = new FormData(event.currentTarget);
+    requestCorrection.mutate({
+      logId: correcting.id,
+      body: {
+        changes: { eggsCollected: Number(data.get('eggsCollected')) },
+        reason: String(data.get('reason')),
+      },
+    });
+  }
+
   if (batch.status === 'PLANNED' || records.data?.productionLogs.length === 0) return null;
 
   return (
@@ -33,6 +64,39 @@ export function ProductionLogs({ batch }: { batch: FlockBatch }) {
         Production logs
       </h2>
       <ErrorMessage error={records.error ?? approve.error} />
+      {correcting && (
+        <form
+          onSubmit={onRequestCorrection}
+          className="flex flex-col gap-3 rounded-lg border border-amber-300 p-4 sm:flex-row sm:items-end dark:border-amber-800"
+        >
+          <p className="text-sm sm:w-48">
+            Correct the log for <strong>{formatDate(correcting.logDate)}</strong>. A reviewer must
+            approve it.
+          </p>
+          <label className="flex flex-col gap-1 text-sm">
+            Eggs collected
+            <input
+              name="eggsCollected"
+              type="number"
+              min={0}
+              required
+              defaultValue={correcting.eggsCollected}
+              className="input"
+            />
+          </label>
+          <label className="flex flex-1 flex-col gap-1 text-sm">
+            Reason
+            <input name="reason" required minLength={3} maxLength={500} className="input" />
+          </label>
+          <button type="submit" disabled={requestCorrection.isPending} className="btn-primary">
+            Request
+          </button>
+          <button type="button" className="btn-secondary" onClick={() => setCorrecting(null)}>
+            Cancel
+          </button>
+        </form>
+      )}
+      <ErrorMessage error={requestCorrection.error} />
       {records.data && (
         <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
           <table className="w-full text-left text-sm">
@@ -60,6 +124,15 @@ export function ProductionLogs({ batch }: { batch: FlockBatch }) {
                     {log.status === 'APPROVED' ? (
                       <span className="text-emerald-700 dark:text-emerald-400">
                         Approved by {log.approver?.name}
+                        {canRecord && batch.status !== 'CLOSED' && (
+                          <button
+                            type="button"
+                            className="ml-3 text-sm text-zinc-600 underline dark:text-zinc-400"
+                            onClick={() => setCorrecting(log)}
+                          >
+                            Request correction
+                          </button>
+                        )}
                       </span>
                     ) : canApprove && batch.status !== 'CLOSED' ? (
                       <button
