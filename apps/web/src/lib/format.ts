@@ -32,3 +32,10 @@ export function todayIn(timeZone: string): string {
 export function humanize(value: string): string {
   return value.replaceAll('_', ' ').toLowerCase();
 }
+
+export function formatDateTime(value: string | null): string {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
+    new Date(value),
+  );
+}
