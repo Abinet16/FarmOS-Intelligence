@@ -1,5 +1,6 @@
 'use client';
 
+import { hasPermission, type Permission } from '@farmos/shared-types';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
@@ -9,11 +10,13 @@ import { api, ApiError, type Organization } from '@/lib/api';
 import { humanize } from '@/lib/format';
 import { OrganizationProvider } from '@/lib/organization-context';
 
-const SECTIONS = [
+const SECTIONS: { href: string; label: string; permission?: Permission }[] = [
   { href: 'farms', label: 'Farms & houses' },
   { href: 'flocks', label: 'Flocks' },
-  { href: 'feed-types', label: 'Feed types' },
-] as const;
+  { href: 'inventory', label: 'Inventory' },
+  { href: 'reviews', label: 'Reviews', permission: 'production:approve-correction' },
+  { href: 'feed-types', label: 'Feed & vaccines' },
+];
 
 export function OrganizationShell({ children }: { children: ReactNode }) {
   const { organizationId } = useParams<{ organizationId: string }>();
@@ -67,8 +70,11 @@ export function OrganizationShell({ children }: { children: ReactNode }) {
               {humanize(organization.data.role)}
             </span>
           </div>
-          <nav className="mx-auto flex w-full max-w-5xl gap-1 px-4">
-            {SECTIONS.map((section) => {
+          <nav className="mx-auto flex w-full max-w-5xl gap-1 overflow-x-auto px-4 whitespace-nowrap">
+            {SECTIONS.filter(
+              (section) =>
+                !section.permission || hasPermission(organization.data.role, section.permission),
+            ).map((section) => {
               const href = `${base}/${section.href}`;
               const active = pathname.startsWith(href);
               return (
