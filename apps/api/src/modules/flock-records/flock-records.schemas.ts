@@ -67,3 +67,12 @@ export const dateRangeSchema = z
     path: ['from'],
   });
 export type DateRangeQuery = z.infer<typeof dateRangeSchema>;
+
+export const voidRecordSchema = z.object({
+  reason: z.string().trim().min(3).max(500),
+});
+export type VoidRecordDto = z.infer<typeof voidRecordSchema>;
+
+/** Record kinds that are corrected by voiding and re-entering. */
+export const VOIDABLE_KINDS = ['mortality', 'feed-usage', 'weight-samples'] as const;
+export type VoidableKind = (typeof VOIDABLE_KINDS)[number];

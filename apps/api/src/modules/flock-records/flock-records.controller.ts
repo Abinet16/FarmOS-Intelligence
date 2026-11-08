@@ -9,17 +9,22 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { z } from 'zod';
 import { Tenant } from '../../common/decorators/context.decorators.js';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import type { TenantContext } from '../../common/request.js';
 import {
+  VOIDABLE_KINDS,
   dailyEntrySchema,
   dateRangeSchema,
   updateProductionLogSchema,
+  voidRecordSchema,
   type DailyEntryDto,
   type DateRangeQuery,
   type UpdateProductionLogDto,
+  type VoidableKind,
+  type VoidRecordDto,
 } from './flock-records.schemas.js';
 import { FlockRecordsService } from './flock-records.service.js';
 
@@ -76,5 +81,18 @@ export class FlockRecordsController {
     @Param('logId', ParseUUIDPipe) logId: string,
   ) {
     return this.records.approveProductionLog(tenant, batchId, logId);
+  }
+
+  @Post(':kind/:recordId/void')
+  @HttpCode(200)
+  @RequirePermission('production:approve-correction')
+  voidRecord(
+    @Tenant() tenant: TenantContext,
+    @Param('batchId', ParseUUIDPipe) batchId: string,
+    @Param('kind', new ZodValidationPipe(z.enum(VOIDABLE_KINDS))) kind: VoidableKind,
+    @Param('recordId', ParseUUIDPipe) recordId: string,
+    @Body(new ZodValidationPipe(voidRecordSchema)) dto: VoidRecordDto,
+  ) {
+    return this.records.voidRecord(tenant, batchId, kind, recordId, dto);
   }
 }
