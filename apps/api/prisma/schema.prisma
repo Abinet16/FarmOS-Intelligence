@@ -215,6 +215,9 @@ model User {
   vaccinationRecorders       VaccinationRecord[]       @relation("VaccinationRecorder")
   healthEventRecorders       HealthEvent[]             @relation("HealthEventRecorder")
   inventoryMovementRecorders InventoryMovement[]       @relation("InventoryMovementRecorder")
+  mortalityVoiders           MortalityEvent[]          @relation("MortalityVoider")
+  feedUsageVoiders           FeedUsage[]               @relation("FeedUsageVoider")
+  weightSampleVoiders        WeightSample[]            @relation("WeightSampleVoider")
   auditActors                AuditLog[]                @relation("AuditActor")
   reportRequesters           ReportJob[]               @relation("ReportRequester")
   aiConversationUsers        AiConversation[]          @relation("AiConversationUser")
@@ -402,6 +405,7 @@ model ProductionLogCorrection {
   requestedBy     String           @map("requested_by") @db.Uuid
   reviewedBy      String?          @map("reviewed_by") @db.Uuid
   reviewedAt      DateTime?        @map("reviewed_at") @db.Timestamptz(3)
+  reviewNote      String?          @map("review_note")
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
@@ -422,10 +426,14 @@ model MortalityEvent {
   reasonCode     MortalityReason @map("reason_code")
   notes          String?
   recordedBy     String          @map("recorded_by") @db.Uuid
+  voidedAt       DateTime?       @map("voided_at") @db.Timestamptz(3)
+  voidedBy       String?         @map("voided_by") @db.Uuid
+  voidReason     String?         @map("void_reason")
   createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   recorder     User         @relation("MortalityRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+  voider       User?        @relation("MortalityVoider", fields: [voidedBy], references: [id], onDelete: Restrict)
   batch        FlockBatch   @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
 
   @@index([organizationId, batchId, eventDate])
@@ -448,17 +456,21 @@ model FeedType {
 }
 
 model FeedUsage {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  batchId        String   @map("batch_id") @db.Uuid
-  feedTypeId     String   @map("feed_type_id") @db.Uuid
-  usageDate      DateTime @map("usage_date") @db.Date
-  quantityKg     Decimal  @map("quantity_kg") @db.Decimal(12, 3)
-  recordedBy     String   @map("recorded_by") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  batchId        String    @map("batch_id") @db.Uuid
+  feedTypeId     String    @map("feed_type_id") @db.Uuid
+  usageDate      DateTime  @map("usage_date") @db.Date
+  quantityKg     Decimal   @map("quantity_kg") @db.Decimal(12, 3)
+  recordedBy     String    @map("recorded_by") @db.Uuid
+  voidedAt       DateTime? @map("voided_at") @db.Timestamptz(3)
+  voidedBy       String?   @map("voided_by") @db.Uuid
+  voidReason     String?   @map("void_reason")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   recorder     User         @relation("FeedUsageRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+  voider       User?        @relation("FeedUsageVoider", fields: [voidedBy], references: [id], onDelete: Restrict)
   batch        FlockBatch   @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
   feedType     FeedType     @relation(fields: [organizationId, feedTypeId], references: [organizationId, id], onDelete: Restrict)
 
@@ -467,17 +479,21 @@ model FeedUsage {
 }
 
 model WeightSample {
-  id                 String   @id @default(uuid()) @db.Uuid
-  organizationId     String   @map("organization_id") @db.Uuid
-  batchId            String   @map("batch_id") @db.Uuid
-  sampleDate         DateTime @map("sample_date") @db.Date
-  sampleSize         Int      @map("sample_size")
-  averageWeightGrams Decimal  @map("average_weight_grams") @db.Decimal(10, 2)
-  recordedBy         String   @map("recorded_by") @db.Uuid
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  batchId            String    @map("batch_id") @db.Uuid
+  sampleDate         DateTime  @map("sample_date") @db.Date
+  sampleSize         Int       @map("sample_size")
+  averageWeightGrams Decimal   @map("average_weight_grams") @db.Decimal(10, 2)
+  recordedBy         String    @map("recorded_by") @db.Uuid
+  voidedAt           DateTime? @map("voided_at") @db.Timestamptz(3)
+  voidedBy           String?   @map("voided_by") @db.Uuid
+  voidReason         String?   @map("void_reason")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   recorder     User         @relation("WeightSampleRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+  voider       User?        @relation("WeightSampleVoider", fields: [voidedBy], references: [id], onDelete: Restrict)
   batch        FlockBatch   @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
 
   @@index([organizationId, batchId, sampleDate])
@@ -575,6 +591,8 @@ model InventoryMovement {
   quantity       Decimal      @db.Decimal(14, 3)
   occurredAt     DateTime     @map("occurred_at") @db.Timestamptz(3)
   reference      String?
+  /// Shared by the TRANSFER_OUT and TRANSFER_IN rows of one transfer.
+  transferId     String?      @map("transfer_id") @db.Uuid
   recordedBy     String       @map("recorded_by") @db.Uuid
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
