@@ -246,7 +246,11 @@ export class FlockBatchesService {
       this.today(tx, tenant),
       tx.mortalityEvent.groupBy({
         by: ['batchId'],
-        where: { organizationId: tenant.organizationId, batchId: { in: batches.map((b) => b.id) } },
+        where: {
+          organizationId: tenant.organizationId,
+          batchId: { in: batches.map((b) => b.id) },
+          voidedAt: null,
+        },
         _sum: { quantity: true },
       }),
     ]);
