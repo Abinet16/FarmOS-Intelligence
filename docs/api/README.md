@@ -167,6 +167,66 @@ defined in [metric definitions](../architecture/metrics.md). `null` means nothin
 recorded. The range can span at most 366 days. Flock batch responses also include `liveBirds`
 and `cumulativeMortalityPct`.
 
+## Corrections and voids
+
+Approved production logs change only through a reviewed correction. Deaths, feed and weight
+records are voided and re-entered. Base: `/api/v1/organizations/:organizationId`.
+
+| Method | Path                                                                           | Permission                      | Body / query                                                    |
+| ------ | ------------------------------------------------------------------------------ | ------------------------------- | --------------------------------------------------------------- |
+| POST   | `/flock-batches/:batchId/production-logs/:logId/corrections`                   | `production:record`             | `{ changes: { eggsCollected?, waterLitres?, notes? }, reason }` |
+| GET    | `/corrections`                                                                 | `production:approve-correction` | `status`, `batchId`, paging                                     |
+| POST   | `/corrections/:correctionId/approve`                                           | `production:approve-correction` | `{ note? }`                                                     |
+| POST   | `/corrections/:correctionId/reject`                                            | `production:approve-correction` | `{ note }` (required)                                           |
+| POST   | `/flock-batches/:batchId/{mortality,feed-usage,weight-samples}/:recordId/void` | `production:approve-correction` | `{ reason }`                                                    |
+
+- Corrections apply only to `APPROVED` logs (409 otherwise; edit submitted logs directly).
+- One pending correction per log (409). A proposal equal to the current values is a 400.
+- The requester can't review their own correction (403). Approval re-validates the change
+  and records before/after values in the audit log.
+- A voided record stays in `/records` with `voidedAt`, `voider` and `voidReason`, but no longer
+  counts towards live birds, metrics or the egg cap. Voiding twice is a 409.
+
+## Health
+
+Base: `/api/v1/organizations/:organizationId`. Reads need membership; writes need
+`health:record`.
+
+| Method | Path                                                          | Body / query                                                                                          |
+| ------ | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| GET    | `/vaccines`                                                   | —                                                                                                     |
+| POST   | `/vaccines`                                                   | `{ name, recommendedIntervalDays? }`                                                                  |
+| PATCH  | `/vaccines/:vaccineId`                                        | `{ name?, recommendedIntervalDays? }`                                                                 |
+| GET    | `/vaccinations`                                               | `batchId`, `status`, `dueWithinDays` (scheduled, incl. overdue), paging                               |
+| POST   | `/flock-batches/:batchId/vaccinations`                        | `{ vaccineId, scheduledDate }` — planned or active flocks                                             |
+| POST   | `/flock-batches/:batchId/vaccinations/:vaccinationId/outcome` | `{ status: "ADMINISTERED", administeredAt?, scheduleNext? }` or `{ status: "MISSED" \| "CANCELLED" }` |
+| GET    | `/health-events`                                              | `batchId`, `resolutionStatus`, `severity`, paging                                                     |
+| POST   | `/flock-batches/:batchId/health-events`                       | `{ observedAt?, category, severity, description }`                                                    |
+| PATCH  | `/flock-batches/:batchId/health-events/:eventId`              | `{ resolutionStatus }`                                                                                |
+
+- Outcomes are final (409 on a second one). Administering needs an active flock and a time
+  that isn't in the future. `scheduleNext` creates the booster from the vaccine's interval and
+  returns it as `next`.
+- Categories describe what was observed (`RESPIRATORY`, `DIGESTIVE`, …), never a diagnosis.
+
+## Inventory
+
+Base: `/api/v1/organizations/:organizationId/inventory`.
+
+| Method | Path             | Permission          | Body / query                                                          |
+| ------ | ---------------- | ------------------- | --------------------------------------------------------------------- |
+| GET    | `/items`         | member              | —                                                                     |
+| POST   | `/items`         | `farm:configure`    | `{ name, unit, reorderLevel? }`                                       |
+| PATCH  | `/items/:itemId` | `farm:configure`    | `{ name?, reorderLevel? }` (the unit is fixed)                        |
+| GET    | `/stock`         | member              | `farmId`, `itemId`, `belowReorder` — balance per item and farm        |
+| GET    | `/movements`     | member              | `itemId`, `farmId`, `limit`, `before` — newest first, keyset paging   |
+| POST   | `/movements`     | `production:record` | `{ itemId, farmId, movementType, quantity, occurredAt?, reference? }` |
+| POST   | `/transfers`     | `production:record` | `{ itemId, fromFarmId, toFarmId, quantity, occurredAt?, reference? }` |
+
+`movementType` is `RECEIPT`, `ISSUE`, `ADJUSTMENT_IN` or `ADJUSTMENT_OUT`; transfers create
+a linked `TRANSFER_OUT`/`TRANSFER_IN` pair. Quantities are positive. Outbound movements that
+would take a farm below zero are a 400 that names the available balance.
+
 ## Audit log
 
 | Method | Path                                               | Permission   | Query                                          |
@@ -179,4 +239,10 @@ Audited actions so far: `organization.created`, `organization.updated`, `members
 `membership.role_changed`, `membership.removed`, `farm.created`, `farm.updated`, `farm.archived`,
 `farm.restored`, `house.created`, `house.updated`, `house.archived`, `house.restored`,
 `flock_batch.created`, `flock_batch.updated`, `flock_batch.status_changed`, `feed_type.created`,
-`feed_type.renamed`, `daily_entry.recorded`, `production_log.updated`, `production_log.approved`.
+`feed_type.renamed`, `daily_entry.recorded`, `production_log.updated`, `production_log.approved`,
+`correction.requested`, `production_log.corrected`, `correction.rejected`, `mortality_event.voided`,
+`feed_usage.voided`, `weight_sample.voided`, `vaccine.created`, `vaccine.updated`,
+`vaccination.scheduled`, `vaccination.administered`, `vaccination.missed`,
+`vaccination.cancelled`, `health_event.recorded`, `health_event.status_changed`,
+`inventory_item.created`, `inventory_item.updated`, `inventory.movement_recorded`,
+`inventory.transferred`.
