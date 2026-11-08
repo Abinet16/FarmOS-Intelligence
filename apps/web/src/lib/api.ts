@@ -1,9 +1,15 @@
 import type {
   BatchStatus,
+  CorrectionStatus,
   FlockPurpose,
+  HealthCategory,
   MortalityReason,
+  MovementType,
   RecordStatus,
+  ResolutionStatus,
   Role,
+  Severity,
+  VaccinationStatus,
 } from '@farmos/shared-types';
 import { API_URL } from './config';
 
@@ -121,30 +127,37 @@ export interface ProductionLog {
   approvedAt: string | null;
 }
 
+/** Voided records stay visible but no longer count towards any total. */
+interface Voidable {
+  voidedAt: string | null;
+  voidReason: string | null;
+  voider: Person | null;
+}
+
 export interface FlockRecords {
   productionLogs: ProductionLog[];
-  mortality: {
+  mortality: (Voidable & {
     id: string;
     eventDate: string;
     quantity: number;
     reasonCode: MortalityReason;
     notes: string | null;
     recorder: Person;
-  }[];
-  feed: {
+  })[];
+  feed: (Voidable & {
     id: string;
     usageDate: string;
     quantityKg: number;
     feedType: FeedType;
     recorder: Person;
-  }[];
-  weightSamples: {
+  })[];
+  weightSamples: (Voidable & {
     id: string;
     sampleDate: string;
     sampleSize: number;
     averageWeightGrams: number;
     recorder: Person;
-  }[];
+  })[];
 }
 
 /** One day of flock metrics; see docs/architecture/metrics.md. Null = not recorded. */
@@ -162,4 +175,78 @@ export interface DailyMetrics {
   feedPerBirdKg: number | null;
   waterLitres: number | null;
   averageWeightGrams: number | null;
+}
+
+export interface Correction {
+  id: string;
+  proposedChanges: { eggsCollected?: number; waterLitres?: number | null; notes?: string | null };
+  reason: string;
+  status: CorrectionStatus;
+  reviewNote: string | null;
+  createdAt: string;
+  requester: Person;
+  reviewer: Person | null;
+  productionLog: {
+    id: string;
+    logDate: string;
+    eggsCollected: number;
+    waterLitres: number | null;
+    notes: string | null;
+    batch: { id: string; batchCode: string };
+  };
+}
+
+export interface Vaccine {
+  id: string;
+  name: string;
+  recommendedIntervalDays: number | null;
+}
+
+export interface Vaccination {
+  id: string;
+  scheduledDate: string;
+  administeredAt: string | null;
+  status: VaccinationStatus;
+  overdue?: boolean;
+  vaccine: Vaccine;
+  batch: { id: string; batchCode: string; status: BatchStatus };
+  recorder: Person | null;
+}
+
+export interface HealthEvent {
+  id: string;
+  observedAt: string;
+  category: HealthCategory;
+  severity: Severity;
+  description: string;
+  resolutionStatus: ResolutionStatus;
+  batch: { id: string; batchCode: string; status: BatchStatus };
+  recorder: Person;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  unit: string;
+  reorderLevel: number | null;
+}
+
+export interface StockRow {
+  item: { id: string; name: string; unit: string };
+  farm: { id: string; name: string; archivedAt: string | null };
+  balance: number;
+  reorderLevel: number | null;
+  belowReorder: boolean;
+}
+
+export interface InventoryMovement {
+  id: string;
+  movementType: MovementType;
+  quantity: number;
+  occurredAt: string;
+  reference: string | null;
+  transferId: string | null;
+  item: { id: string; name: string; unit: string };
+  farm: { id: string; name: string };
+  recorder: Person;
 }
