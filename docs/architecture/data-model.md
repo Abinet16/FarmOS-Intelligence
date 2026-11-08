@@ -52,6 +52,9 @@ erDiagram
 | **One active flock per house.**                                                    | Partial unique index `flock_batches (organization_id, house_id) WHERE status = 'ACTIVE'`                                                                                                                                      |
 | **A flock's end date matches its status.**                                         | `CHECK` constraints: `end_date` is set exactly when status is `DEPLETED` or `CLOSED`, and never precedes `placement_date`                                                                                                     |
 | **Approval is all-or-nothing.**                                                    | `CHECK`: `approved_by` and `approved_at` are set exactly when a production log is `APPROVED`                                                                                                                                  |
+| **One open correction per log, reviewed once.**                                    | Partial unique index on pending corrections; `CHECK`: reviewer and review time set exactly when a correction leaves `PENDING`                                                                                                 |
+| **Voids explain themselves.**                                                      | `CHECK` on mortality, feed and weight records: `voided_at`, `voided_by` and `void_reason` are all set or all null                                                                                                             |
+| **Transfers are pairs.**                                                           | `CHECK`: `transfer_id` is set exactly on `TRANSFER_IN`/`TRANSFER_OUT` movements; both rows of a transfer share it                                                                                                             |
 | **Unique batch codes per tenant.**                                                 | `UNIQUE (organization_id, batch_code)`                                                                                                                                                                                        |
 | **Non-negative quantities.**                                                       | `CHECK` constraints in the initial migration                                                                                                                                                                                  |
 | **Append-only audit history.**                                                     | Trigger rejects `UPDATE` and `DELETE` on `audit_logs`                                                                                                                                                                         |
@@ -72,6 +75,8 @@ Sessions and accounts cascade-delete with their user; nothing else does.
   other tenant-owned table.
 - `production_logs` gained `status`, `approved_by` and `approved_at`, and a
   `production_log_corrections` table was added to implement the correction workflow.
+- Mortality, feed and weight records gained void columns instead of an edit path
+  ([ADR-0008](../decisions/0008-corrections-health-inventory.md)).
 
 ## Changing the schema
 
