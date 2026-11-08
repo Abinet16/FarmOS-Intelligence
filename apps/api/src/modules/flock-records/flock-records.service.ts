@@ -1,15 +1,27 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import type { BatchStatus, FlockPurpose } from '@farmos/shared-types';
 import { organizationToday } from '../../database/organization-today.js';
 import { PrismaService, type Tx } from '../../database/prisma.service.js';
 import type { TenantContext } from '../../common/request.js';
 import { invalidField } from '../../common/pipes/zod-validation.pipe.js';
 import { AuditService } from '../audit/audit.service.js';
-import { dailyMetrics, dateKey, laysEggs, type BatchFacts } from '../metrics/flock-metrics.js';
+import { dailyMetrics, dateKey, laysEggs } from '../metrics/flock-metrics.js';
+import {
+  assertEggCount,
+  lockBatch,
+  numberOrNull,
+  sumDeaths,
+  toFeedUsage,
+  toProductionLog,
+  toWeightSample,
+  type LockedBatch,
+  type Decimalish,
+} from './record-rules.js';
 import type {
   DailyEntryDto,
   DateRangeQuery,
   UpdateProductionLogDto,
+  VoidableKind,
+  VoidRecordDto,
 } from './flock-records.schemas.js';
 
 const DAY_MS = 86_400_000;
@@ -18,9 +30,11 @@ const MAX_WINDOW_DAYS = 366;
 
 const recorder = { select: { id: true, name: true } } as const;
 
-interface LockedBatch extends BatchFacts {
-  status: BatchStatus;
-}
+const VOID_ENTITY: Record<VoidableKind, string> = {
+  mortality: 'mortality_event',
+  'feed-usage': 'feed_usage',
+  'weight-samples': 'weight_sample',
+};
 
 /**
  * Daily operational records for a flock batch: production logs, mortality,
@@ -36,12 +50,12 @@ export class FlockRecordsService {
   /** Saves one day's entry for a batch in a single transaction. */
   recordDay(tenant: TenantContext, batchId: string, dto: DailyEntryDto) {
     return this.prisma.withTenant(tenant, async (tx) => {
-      const batch = await this.lockBatch(tx, tenant, batchId);
+      const batch = await lockBatch(tx, tenant, batchId);
       await this.assertRecordable(tx, tenant, batch, dto.date);
 
       const { organizationId, userId } = tenant;
-      const deathsBefore = await this.sumDeaths(tx, tenant, batchId, { lt: dto.date });
-      const deathsAfter = await this.sumDeaths(tx, tenant, batchId, { gte: dto.date });
+      const deathsBefore = await sumDeaths(tx, tenant, batchId, { lt: dto.date });
+      const deathsAfter = await sumDeaths(tx, tenant, batchId, { gte: dto.date });
       const opening = batch.initialBirds - deathsBefore;
       const newDeaths = dto.deaths.reduce((sum, death) => sum + death.quantity, 0);
       const liveAtEnd = batch.initialBirds - deathsBefore - deathsAfter;
@@ -163,19 +177,19 @@ export class FlockRecordsService {
         tx.mortalityEvent.findMany({
           where: { ...where, eventDate: window },
           orderBy: [{ eventDate: 'desc' }, { createdAt: 'desc' }],
-          include: { recorder },
+          include: { recorder, voider: recorder },
           take,
         }),
         tx.feedUsage.findMany({
           where: { ...where, usageDate: window },
           orderBy: [{ usageDate: 'desc' }, { createdAt: 'desc' }],
-          include: { recorder, feedType: { select: { id: true, name: true } } },
+          include: { recorder, voider: recorder, feedType: { select: { id: true, name: true } } },
           take,
         }),
         tx.weightSample.findMany({
           where: { ...where, sampleDate: window },
           orderBy: [{ sampleDate: 'desc' }, { createdAt: 'desc' }],
-          include: { recorder },
+          include: { recorder, voider: recorder },
           take,
         }),
       ]);
@@ -205,12 +219,13 @@ export class FlockRecordsService {
       if (batch.status === 'PLANNED') return { from: dateKey(from), to: dateKey(to), days: [] };
 
       const where = { organizationId: tenant.organizationId, batchId };
+      const live = { ...where, voidedAt: null };
       const window = { gte: from, lte: to };
       const [deaths, logs, feed, weights] = await Promise.all([
         // All deaths up to the window's end: earlier ones set the opening population.
         tx.mortalityEvent.groupBy({
           by: ['eventDate'],
-          where: { ...where, eventDate: { lte: to } },
+          where: { ...live, eventDate: { lte: to } },
           _sum: { quantity: true },
         }),
         tx.productionLog.findMany({
@@ -219,11 +234,11 @@ export class FlockRecordsService {
         }),
         tx.feedUsage.groupBy({
           by: ['usageDate'],
-          where: { ...where, usageDate: window },
+          where: { ...live, usageDate: window },
           _sum: { quantityKg: true },
         }),
         tx.weightSample.findMany({
-          where: { ...where, sampleDate: window },
+          where: { ...live, sampleDate: window },
           select: { sampleDate: true, sampleSize: true, averageWeightGrams: true },
         }),
       ]);
@@ -258,7 +273,7 @@ export class FlockRecordsService {
     dto: UpdateProductionLogDto,
   ) {
     return this.prisma.withTenant(tenant, async (tx) => {
-      const batch = await this.lockBatch(tx, tenant, batchId);
+      const batch = await lockBatch(tx, tenant, batchId);
       if (batch.status === 'CLOSED') throw new ConflictException('A closed batch is read-only');
       const log = await this.findLog(tx, tenant, batchId, logId);
       if (log.status === 'APPROVED') {
@@ -266,14 +281,7 @@ export class FlockRecordsService {
       }
 
       if (dto.eggsCollected !== undefined) {
-        if (!laysEggs(batch.purpose) && dto.eggsCollected > 0) {
-          throw invalidField('eggsCollected', 'broiler flocks do not lay eggs');
-        }
-        const opening =
-          batch.initialBirds - (await this.sumDeaths(tx, tenant, batchId, { lt: log.logDate }));
-        if (dto.eggsCollected > opening) {
-          throw invalidField('eggsCollected', `cannot exceed the ${opening} birds alive that day`);
-        }
+        await assertEggCount(tx, tenant, batchId, batch, log.logDate, dto.eggsCollected);
       }
 
       const { waterLitres, ...rest } = dto;
@@ -302,7 +310,7 @@ export class FlockRecordsService {
 
   approveProductionLog(tenant: TenantContext, batchId: string, logId: string) {
     return this.prisma.withTenant(tenant, async (tx) => {
-      await this.lockBatch(tx, tenant, batchId);
+      await lockBatch(tx, tenant, batchId);
       const log = await this.findLog(tx, tenant, batchId, logId);
       if (log.status === 'APPROVED') throw new ConflictException('This log is already approved');
 
@@ -317,6 +325,50 @@ export class FlockRecordsService {
         metadata: { date: dateKey(log.logDate), createdBy: log.createdBy },
       });
       return toProductionLog(updated);
+    });
+  }
+
+  /**
+   * Mortality, feed and weight records are never edited. A wrong one is voided
+   * with a reason, which keeps the original visible but drops it from every
+   * total, and the right value is entered again as a new record.
+   */
+  voidRecord(
+    tenant: TenantContext,
+    batchId: string,
+    kind: VoidableKind,
+    recordId: string,
+    dto: VoidRecordDto,
+  ) {
+    return this.prisma.withTenant(tenant, async (tx) => {
+      const batch = await lockBatch(tx, tenant, batchId);
+      if (batch.status === 'CLOSED') throw new ConflictException('A closed batch is read-only');
+
+      const where = { id: recordId, batchId, organizationId: tenant.organizationId };
+      const found =
+        kind === 'mortality'
+          ? await tx.mortalityEvent.findFirst({ where, select: { voidedAt: true } })
+          : kind === 'feed-usage'
+            ? await tx.feedUsage.findFirst({ where, select: { voidedAt: true } })
+            : await tx.weightSample.findFirst({ where, select: { voidedAt: true } });
+      if (!found) throw new NotFoundException('Record not found');
+      if (found.voidedAt) throw new ConflictException('This record is already voided');
+
+      const data = { voidedAt: new Date(), voidedBy: tenant.userId, voidReason: dto.reason };
+      const updated =
+        kind === 'mortality'
+          ? await tx.mortalityEvent.update({ where: { id: recordId }, data })
+          : kind === 'feed-usage'
+            ? toFeedUsage(await tx.feedUsage.update({ where: { id: recordId }, data }))
+            : toWeightSample(await tx.weightSample.update({ where: { id: recordId }, data }));
+
+      await this.audit.record(tx, tenant, {
+        action: `${VOID_ENTITY[kind]}.voided`,
+        entityType: VOID_ENTITY[kind],
+        entityId: recordId,
+        metadata: { batchId, reason: dto.reason },
+      });
+      return updated;
     });
   }
 
@@ -336,43 +388,6 @@ export class FlockRecordsService {
     if (batch.endDate && date > batch.endDate) {
       throw invalidField('date', 'is after the batch was depleted');
     }
-  }
-
-  private async sumDeaths(
-    tx: Tx,
-    tenant: TenantContext,
-    batchId: string,
-    eventDate: { lt: Date } | { gte: Date },
-  ) {
-    const { _sum } = await tx.mortalityEvent.aggregate({
-      where: { organizationId: tenant.organizationId, batchId, eventDate },
-      _sum: { quantity: true },
-    });
-    return _sum.quantity ?? 0;
-  }
-
-  /** Locks the batch so concurrent entries can't together exceed its birds. */
-  private async lockBatch(tx: Tx, tenant: TenantContext, batchId: string): Promise<LockedBatch> {
-    const [row] = await tx.$queryRaw<
-      {
-        status: BatchStatus;
-        purpose: FlockPurpose;
-        initial_birds: number;
-        placement_date: Date;
-        end_date: Date | null;
-      }[]
-    >`
-      SELECT status, purpose, initial_birds, placement_date, end_date FROM flock_batches
-      WHERE id = ${batchId}::uuid AND organization_id = ${tenant.organizationId}::uuid
-      FOR UPDATE`;
-    if (!row) throw new NotFoundException('Flock batch not found');
-    return {
-      status: row.status,
-      purpose: row.purpose,
-      initialBirds: row.initial_birds,
-      placementDate: row.placement_date,
-      endDate: row.end_date,
-    };
   }
 
   private async findBatch(tx: Tx, tenant: TenantContext, batchId: string) {
@@ -397,28 +412,6 @@ export class FlockRecordsService {
     if (!log) throw new NotFoundException('Production log not found');
     return log;
   }
-}
-
-type Decimalish = { toString(): string } | null;
-
-function numberOrNull(value: Decimalish): number | null {
-  return value === null ? null : Number(value);
-}
-
-/** Decimals leave the API as numbers, not strings. */
-function toProductionLog<T extends { waterConsumption: Decimalish }>({
-  waterConsumption,
-  ...log
-}: T) {
-  return { ...log, waterLitres: numberOrNull(waterConsumption) };
-}
-
-function toFeedUsage<T extends { quantityKg: Decimalish }>(usage: T) {
-  return { ...usage, quantityKg: Number(usage.quantityKg) };
-}
-
-function toWeightSample<T extends { averageWeightGrams: Decimalish }>(sample: T) {
-  return { ...sample, averageWeightGrams: Number(sample.averageWeightGrams) };
 }
 
 /** Several samples on one day combine weighted by sample size. */
