@@ -37,6 +37,21 @@ once in [`packages/shared-types/src/roles.ts`](../../packages/shared-types/src/r
 - `reports:view-limited` means a field worker sees their own recent entries and their
   assigned batches only; the exact scope is defined with the reports module (week 8).
 - Frontend role-based rendering is for usability only. The API is the security boundary.
+- **Four eyes on corrections:** a correction to an approved production log must be reviewed by
+  someone other than the person who requested it, even if the requester holds
+  `production:approve-correction`.
 - An organization always keeps at least one owner. Demoting or removing the last owner is
   rejected with **409**, and owner rows are locked during the check so concurrent requests cannot
   both succeed.
+
+## What each permission unlocks
+
+| Permission                      | Allows                                                                                           |
+| ------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `farm:configure`                | Farms, houses, flock batches and their lifecycle; feed types; inventory items                    |
+| `production:record`             | Daily entries, editing submitted logs, requesting corrections, inventory movements and transfers |
+| `production:approve-correction` | Approving production logs, reviewing corrections, voiding deaths/feed/weight records             |
+| `health:record`                 | Vaccines, vaccination schedules and outcomes, health observations                                |
+| `audit:view`                    | The audit log                                                                                    |
+
+Reading farm structure, records, health and inventory needs only membership.
