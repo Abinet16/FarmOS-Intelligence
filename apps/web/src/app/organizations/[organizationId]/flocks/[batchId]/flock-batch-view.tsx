@@ -12,7 +12,9 @@ import { formatCount, formatDate, formatPercent, humanize } from '@/lib/format';
 import { useCan, useOrganization } from '@/lib/organization-context';
 import { DailyEntryForm } from './daily-entry-form';
 import { DailyMetricsTable } from './daily-metrics-table';
+import { HealthPanel } from './health-panel';
 import { ProductionLogs } from './production-logs';
+import { RecentRecords } from './recent-records';
 
 const ACTION_LABELS: Record<BatchStatus, string> = {
   PLANNED: 'Plan',
@@ -108,6 +110,10 @@ export function FlockBatchView() {
       <DailyMetricsTable batch={b} />
 
       <ProductionLogs batch={b} />
+
+      <RecentRecords batch={b} />
+
+      <HealthPanel batch={b} />
 
       {canConfigure && next.length > 0 && (
         <section aria-labelledby="lifecycle" className="flex flex-col gap-3">
