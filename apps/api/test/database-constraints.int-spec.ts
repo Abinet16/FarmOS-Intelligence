@@ -229,6 +229,87 @@ describe('database constraints', () => {
     });
   });
 
+  describe('corrections, voids and transfers', () => {
+    it('allows one pending correction per log and reviews it all at once', async () => {
+      const org = await createOrg('Review');
+      const { batch } = await createBatch(org.id);
+      const log = await prisma.productionLog.create({
+        data: {
+          organizationId: org.id,
+          batchId: batch.id,
+          logDate: new Date('2026-10-02'),
+          eggsCollected: 10,
+          createdBy: actorId,
+        },
+      });
+      const correction = {
+        organizationId: org.id,
+        productionLogId: log.id,
+        proposedChanges: { eggsCollected: 11 },
+        reason: 'recount',
+        requestedBy: actorId,
+      };
+      const first = await prisma.productionLogCorrection.create({ data: correction });
+
+      await expect(prisma.productionLogCorrection.create({ data: correction })).rejects.toThrow(
+        /production_log_corrections_one_pending_per_log|Unique constraint/,
+      );
+      await expect(
+        prisma.productionLogCorrection.update({
+          where: { id: first.id },
+          data: { status: 'APPROVED' },
+        }),
+      ).rejects.toThrow(/production_log_corrections_review_check/);
+    });
+
+    it('requires who, when and why to void a record', async () => {
+      const org = await createOrg('Void');
+      const { batch } = await createBatch(org.id);
+      const death = await prisma.mortalityEvent.create({
+        data: {
+          organizationId: org.id,
+          batchId: batch.id,
+          eventDate: new Date('2026-10-02'),
+          quantity: 1,
+          reasonCode: 'UNKNOWN',
+          recordedBy: actorId,
+        },
+      });
+
+      await expect(
+        prisma.mortalityEvent.update({
+          where: { id: death.id },
+          data: { voidedAt: new Date(), voidedBy: actorId },
+        }),
+      ).rejects.toThrow(/mortality_events_void_check/);
+    });
+
+    it('requires a transfer id on transfer movements only', async () => {
+      const org = await createOrg('Transfer');
+      const { farm } = await createBatch(org.id);
+      const item = await prisma.inventoryItem.create({
+        data: { organizationId: org.id, name: 'Grit', unit: 'kg' },
+      });
+      const movement = {
+        organizationId: org.id,
+        itemId: item.id,
+        farmId: farm.id,
+        quantity: 1,
+        occurredAt: new Date(),
+        recordedBy: actorId,
+      };
+
+      await expect(
+        prisma.inventoryMovement.create({ data: { ...movement, movementType: 'TRANSFER_IN' } }),
+      ).rejects.toThrow(/inventory_movements_transfer_check/);
+      await expect(
+        prisma.inventoryMovement.create({
+          data: { ...movement, movementType: 'RECEIPT', transferId: randomUUID() },
+        }),
+      ).rejects.toThrow(/inventory_movements_transfer_check/);
+    });
+  });
+
   describe('actor references', () => {
     it('rejects a record attributed to a user that does not exist', async () => {
       const org = await createOrg('Actor');
