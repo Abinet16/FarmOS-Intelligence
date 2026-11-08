@@ -4,7 +4,7 @@ A multi-tenant farm operations and decision-support platform, starting with poul
 Farm teams record daily operations; managers get validated metrics, threshold alerts, and an AI
 assistant whose answers are grounded in their own records.
 
-> **Status:** v0.1 (Secure foundation) is done; v0.2 (Farm operations) is in progress. See the [roadmap](#roadmap).
+> **Status:** v0.2 (Farm operations) is done; v0.3 (Analytics and alerts) is next. See the [roadmap](#roadmap).
 
 ## Stack
 
