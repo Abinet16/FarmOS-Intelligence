@@ -11,10 +11,14 @@ export const send = (
 ) => agent[method](url).set('Origin', WEB_ORIGIN).send(body);
 
 /**
- * An organization owned by `owner`, with a farm, a house and an active layer
- * flock of 1,000 birds placed on 1 Oct 2026. Returns the API base path and ids.
+ * An organization owned by `owner`, with a farm, a house and an active flock
+ * (layers unless stated) of 1,000 birds placed on 1 Oct 2026. Returns the API base path and ids.
  */
-export async function createFarmWithFlock(owner: Agent, name: string) {
+export async function createFarmWithFlock(
+  owner: Agent,
+  name: string,
+  purpose: 'LAYER' | 'BROILER' | 'BREEDER' = 'LAYER',
+) {
   const org = (await send(owner, 'post', '/api/v1/organizations', { name }).expect(201)).body.id;
   const base = `/api/v1/organizations/${org}`;
   const farmId = (await send(owner, 'post', `${base}/farms`, { name: `${name} farm` }).expect(201))
@@ -27,6 +31,7 @@ export async function createFarmWithFlock(owner: Agent, name: string) {
       houseId,
       batchCode: `${name.slice(0, 3).toUpperCase()}-01`,
       breed: 'Lohmann Brown',
+      purpose,
       placementDate: '2026-10-01',
       initialBirds: 1000,
     }).expect(201)
