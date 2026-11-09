@@ -1,4 +1,6 @@
 import type {
+  AlertRule,
+  AlertStatus,
   BatchStatus,
   CorrectionStatus,
   FlockPurpose,
@@ -249,4 +251,87 @@ export interface InventoryMovement {
   item: { id: string; name: string; unit: string };
   farm: { id: string; name: string };
   recorder: Person;
+}
+
+/** Additive window totals; rates are derived from them, never averaged. */
+export interface WindowTotals {
+  days: number;
+  startingBirds: number;
+  deaths: number;
+  eggs: number;
+  layingBirdDays: number;
+  daysWithEggs: number;
+  feedKg: number;
+  feedBirdDays: number;
+  daysWithFeed: number;
+}
+
+export interface WindowKpis {
+  henDayPct: number | null;
+  mortalityPct: number | null;
+  feedPerBirdKg: number | null;
+}
+
+export interface DateRangeResult {
+  from: string;
+  to: string;
+}
+
+export interface AnalyticsOverview {
+  range: DateRangeResult;
+  flocks: { active: number; liveBirds: number; inRange: number };
+  production: { totals: WindowTotals; kpis: WindowKpis };
+  health: { openEvents: number; vaccinationsDueThisWeek: number; vaccinationsOverdue: number };
+  inventory: { lowStock: number };
+  alerts: Partial<Record<Severity, number>>;
+}
+
+export interface CombinedDay {
+  date: string;
+  openingBirds: number;
+  deaths: number;
+  mortalityRatePct: number | null;
+  eggs: number | null;
+  henDayPct: number | null;
+  feedKg: number | null;
+  feedPerBirdKg: number | null;
+}
+
+export interface FarmComparison {
+  range: DateRangeResult;
+  farms: {
+    farm: { id: string; name: string };
+    flocks: number;
+    birdsAtEnd: number;
+    totals: WindowTotals;
+    kpis: WindowKpis;
+  }[];
+}
+
+export interface FlockSummary {
+  flock: {
+    id: string;
+    batchCode: string;
+    breed: string;
+    purpose: FlockPurpose;
+    status: BatchStatus;
+    house: { id: string; name: string; farm: { id: string; name: string } };
+  };
+  days: number;
+  birdsAtEnd: number | null;
+  totals: WindowTotals;
+  kpis: WindowKpis;
+  fcr: number | null;
+}
+
+export interface Alert {
+  id: string;
+  ruleCode: AlertRule;
+  severity: Severity;
+  status: AlertStatus;
+  details: Record<string, unknown> | null;
+  createdAt: string;
+  batch: { id: string; batchCode: string } | null;
+  acknowledger: Person | null;
+  resolver: Person | null;
 }
