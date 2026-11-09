@@ -4,6 +4,7 @@ import { PrismaService, type Tx } from '../../database/prisma.service.js';
 import type { TenantContext } from '../../common/request.js';
 import { invalidField } from '../../common/pipes/zod-validation.pipe.js';
 import { AuditService } from '../audit/audit.service.js';
+import { loadDailyInputs } from '../metrics/daily-inputs.js';
 import { dailyMetrics, dateKey, laysEggs } from '../metrics/flock-metrics.js';
 import {
   assertEggCount,
@@ -14,7 +15,6 @@ import {
   toProductionLog,
   toWeightSample,
   type LockedBatch,
-  type Decimalish,
 } from './record-rules.js';
 import type {
   DailyEntryDto,
@@ -218,49 +218,14 @@ export class FlockRecordsService {
       }
       if (batch.status === 'PLANNED') return { from: dateKey(from), to: dateKey(to), days: [] };
 
-      const where = { organizationId: tenant.organizationId, batchId };
-      const live = { ...where, voidedAt: null };
-      const window = { gte: from, lte: to };
-      const [deaths, logs, feed, weights] = await Promise.all([
-        // All deaths up to the window's end: earlier ones set the opening population.
-        tx.mortalityEvent.groupBy({
-          by: ['eventDate'],
-          where: { ...live, eventDate: { lte: to } },
-          _sum: { quantity: true },
-        }),
-        tx.productionLog.findMany({
-          where: { ...where, logDate: window },
-          select: { logDate: true, eggsCollected: true, waterConsumption: true },
-        }),
-        tx.feedUsage.groupBy({
-          by: ['usageDate'],
-          where: { ...live, usageDate: window },
-          _sum: { quantityKg: true },
-        }),
-        tx.weightSample.findMany({
-          where: { ...live, sampleDate: window },
-          select: { sampleDate: true, sampleSize: true, averageWeightGrams: true },
-        }),
-      ]);
-
-      const days = dailyMetrics(
-        batch,
-        {
-          deaths: new Map(deaths.map((d) => [dateKey(d.eventDate), d._sum.quantity ?? 0])),
-          eggs: laysEggs(batch.purpose)
-            ? new Map(logs.map((log) => [dateKey(log.logDate), log.eggsCollected]))
-            : new Map(),
-          feedKg: new Map(feed.map((f) => [dateKey(f.usageDate), Number(f._sum.quantityKg ?? 0)])),
-          waterLitres: new Map(
-            logs
-              .filter((log) => log.waterConsumption !== null)
-              .map((log) => [dateKey(log.logDate), Number(log.waterConsumption)]),
-          ),
-          averageWeightGrams: weightedAverages(weights),
-        },
+      const inputs = await loadDailyInputs(
+        tx,
+        tenant.organizationId,
+        [{ id: batchId, purpose: batch.purpose }],
         from,
         to,
       );
+      const days = dailyMetrics(batch, inputs.get(batchId)!, from, to);
       return { from: dateKey(from), to: dateKey(to), days: days.reverse() };
     });
   }
@@ -412,19 +377,4 @@ export class FlockRecordsService {
     if (!log) throw new NotFoundException('Production log not found');
     return log;
   }
-}
-
-/** Several samples on one day combine weighted by sample size. */
-function weightedAverages(
-  samples: { sampleDate: Date; sampleSize: number; averageWeightGrams: Decimalish }[],
-): Map<string, number> {
-  const totals = new Map<string, { grams: number; birds: number }>();
-  for (const sample of samples) {
-    const key = dateKey(sample.sampleDate);
-    const total = totals.get(key) ?? { grams: 0, birds: 0 };
-    total.grams += Number(sample.averageWeightGrams) * sample.sampleSize;
-    total.birds += sample.sampleSize;
-    totals.set(key, total);
-  }
-  return new Map([...totals].map(([key, { grams, birds }]) => [key, grams / birds]));
 }
