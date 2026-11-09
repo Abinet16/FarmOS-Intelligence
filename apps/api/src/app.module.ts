@@ -5,6 +5,8 @@ import { AuthGuard } from './common/guards/auth.guard.js';
 import { TenantGuard } from './common/guards/tenant.guard.js';
 import { ConfigModule } from './config/config.module.js';
 import { DatabaseModule } from './database/database.module.js';
+import { AlertsModule } from './modules/alerts/alerts.module.js';
+import { AnalyticsModule } from './modules/analytics/analytics.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { CorrectionsModule } from './modules/corrections/corrections.module.js';
@@ -38,6 +40,8 @@ import { UsersModule } from './modules/users/users.module.js';
     CorrectionsModule,
     FlockHealthModule,
     InventoryModule,
+    AnalyticsModule,
+    AlertsModule,
   ],
   providers: [
     // Global guards run in registration order: authenticate, then resolve tenant.
