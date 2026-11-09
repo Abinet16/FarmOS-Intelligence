@@ -310,6 +310,27 @@ describe('database constraints', () => {
     });
   });
 
+  describe('alerts', () => {
+    it('keeps review fields consistent with status and dedupes by key', async () => {
+      const org = await createOrg('Alerts');
+      const alert = {
+        organizationId: org.id,
+        ruleCode: 'LOW_STOCK',
+        severity: 'MEDIUM' as const,
+        dedupeKey: 'LOW_STOCK:x@y:2026-10-01',
+      };
+      const created = await prisma.alert.create({ data: alert });
+
+      await expect(prisma.alert.create({ data: alert })).rejects.toThrow();
+      await expect(
+        prisma.alert.update({ where: { id: created.id }, data: { status: 'RESOLVED' } }),
+      ).rejects.toThrow(/alerts_resolved_check/);
+      await expect(
+        prisma.alert.update({ where: { id: created.id }, data: { status: 'ACKNOWLEDGED' } }),
+      ).rejects.toThrow(/alerts_status_check/);
+    });
+  });
+
   describe('actor references', () => {
     it('rejects a record attributed to a user that does not exist', async () => {
       const org = await createOrg('Actor');
