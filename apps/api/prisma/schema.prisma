@@ -158,13 +158,15 @@ enum AiMessageRole {
 // ─────────────────────── Tenancy and identity ───────────────────────
 
 model Organization {
-  id        String             @id @default(uuid()) @db.Uuid
-  name      String
-  slug      String             @unique
-  timezone  String             @default("UTC")
-  status    OrganizationStatus @default(ACTIVE)
-  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id            String             @id @default(uuid()) @db.Uuid
+  name          String
+  slug          String             @unique
+  timezone      String             @default("UTC")
+  /// Alert thresholds; null means the defaults in @farmos/shared-types.
+  alertSettings Json?              @map("alert_settings")
+  status        OrganizationStatus @default(ACTIVE)
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   memberships           Membership[]
   farms                 Farm[]
@@ -218,6 +220,8 @@ model User {
   mortalityVoiders           MortalityEvent[]          @relation("MortalityVoider")
   feedUsageVoiders           FeedUsage[]               @relation("FeedUsageVoider")
   weightSampleVoiders        WeightSample[]            @relation("WeightSampleVoider")
+  alertAcknowledgers         Alert[]                   @relation("AlertAcknowledger")
+  alertResolvers             Alert[]                   @relation("AlertResolver")
   auditActors                AuditLog[]                @relation("AuditActor")
   reportRequesters           ReportJob[]               @relation("ReportRequester")
   aiConversationUsers        AiConversation[]          @relation("AiConversationUser")
@@ -617,11 +621,17 @@ model Alert {
   /// Deterministic key (rule + subject + window) so job retries cannot raise duplicates.
   dedupeKey      String      @map("dedupe_key")
   details        Json?
+  acknowledgedBy String?     @map("acknowledged_by") @db.Uuid
+  acknowledgedAt DateTime?   @map("acknowledged_at") @db.Timestamptz(3)
+  resolvedBy     String?     @map("resolved_by") @db.Uuid
+  resolvedAt     DateTime?   @map("resolved_at") @db.Timestamptz(3)
   createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   batch        FlockBatch?  @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Restrict)
+  acknowledger User?        @relation("AlertAcknowledger", fields: [acknowledgedBy], references: [id], onDelete: Restrict)
+  resolver     User?        @relation("AlertResolver", fields: [resolvedBy], references: [id], onDelete: Restrict)
 
   @@unique([organizationId, dedupeKey])
   @@index([organizationId, status, createdAt])
