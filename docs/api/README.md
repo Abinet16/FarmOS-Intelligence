@@ -227,6 +227,41 @@ Base: `/api/v1/organizations/:organizationId/inventory`.
 a linked `TRANSFER_OUT`/`TRANSFER_IN` pair. Quantities are positive. Outbound movements that
 would take a farm below zero are a 400 that names the available balance.
 
+## Analytics
+
+Base: `/api/v1/organizations/:organizationId/analytics`. Every endpoint needs `reports:view`
+and accepts `from`, `to` (default: the 30 days ending today in the organization's time zone,
+at most 366 days) and `farmId`. Definitions:
+[metric definitions](../architecture/metrics.md#windows-and-groups-of-flocks).
+
+| Method | Path               | Returns                                                                                                                                          |
+| ------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/overview`        | `flocks` (active, live birds), `production` (`totals`, `kpis`), `health`, `inventory`, `alerts` by severity (alert counts are organization-wide) |
+| GET    | `/trend`           | `days`: one row per date across flocks (birds, deaths, mortality, eggs, hen-day, feed)                                                           |
+| GET    | `/farms`           | `farms`: per-farm totals and KPIs, weighted by birds                                                                                             |
+| GET    | `/flocks`          | `flocks`: per-flock totals, KPIs and `fcr` (broilers only)                                                                                       |
+| GET    | `/flocks/:batchId` | `summary` for one flock plus its daily rows, oldest first                                                                                        |
+
+`kpis` is `{ henDayPct, mortalityPct, feedPerBirdKg }`; any of them is `null` when nothing
+was recorded to compute it from.
+
+## Alerts
+
+Base: `/api/v1/organizations/:organizationId`. See [alerts](../architecture/alerts.md) for the
+rules and deduplication.
+
+| Method | Path                           | Permission                      | Body / query                                                          |
+| ------ | ------------------------------ | ------------------------------- | --------------------------------------------------------------------- |
+| GET    | `/alerts`                      | member                          | `open`, `status`, `severity`, `batchId`, paging                       |
+| POST   | `/alerts/evaluate`             | `production:approve-correction` | `{ date? }`: defaults to yesterday; returns counts                    |
+| POST   | `/alerts/:alertId/acknowledge` | `production:approve-correction` | —                                                                     |
+| POST   | `/alerts/:alertId/resolve`     | `production:approve-correction` | —                                                                     |
+| GET    | `/alert-settings`              | member                          | —                                                                     |
+| PUT    | `/alert-settings`              | `farm:configure`                | `{ dailyMortalityPct, henDayDropPoints, feedDropPct, disabledRules }` |
+
+Evaluating is idempotent: running it again for the same day creates nothing new. Acknowledging
+an alert that isn't open, or resolving a resolved one, is a 409.
+
 ## Audit log
 
 | Method | Path                                               | Permission   | Query                                          |
@@ -245,4 +280,5 @@ Audited actions so far: `organization.created`, `organization.updated`, `members
 `vaccination.scheduled`, `vaccination.administered`, `vaccination.missed`,
 `vaccination.cancelled`, `health_event.recorded`, `health_event.status_changed`,
 `inventory_item.created`, `inventory_item.updated`, `inventory.movement_recorded`,
-`inventory.transferred`.
+`inventory.transferred`, `alerts.evaluated`, `alert.acknowledged`, `alert.resolved`,
+`alert_settings.updated`.
