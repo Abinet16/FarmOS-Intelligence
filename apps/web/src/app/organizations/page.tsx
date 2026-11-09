@@ -89,7 +89,7 @@ export default function OrganizationsPage() {
             <li key={org.id} className="flex items-center justify-between gap-4 px-4 py-3">
               <div>
                 <Link
-                  href={`/organizations/${org.id}/farms`}
+                  href={`/organizations/${org.id}`}
                   className="font-medium hover:underline"
                 >
                   {org.name}
