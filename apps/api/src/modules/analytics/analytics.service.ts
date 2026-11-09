@@ -17,7 +17,12 @@ import { loadFlockWindows, type FlockWindow } from './flock-windows.js';
 
 const DAY_MS = 86_400_000;
 
-/** Window figures for one flock: KPIs, FCR and where the population ended. */
+/**
+ * Window figures for one flock: KPIs, FCR and where the population ended.
+ * FCR is reported for broilers only: adult layers barely gain weight, so
+ * feed per kg of gain is meaningless for them (their efficiency is feed per
+ * kg of eggs, which needs egg weights FarmOS doesn't record).
+ */
 function flockSummary({ flock, rows }: FlockWindow) {
   const totals = windowTotals(rows, flock.purpose);
   const last = rows.at(-1);
@@ -34,7 +39,7 @@ function flockSummary({ flock, rows }: FlockWindow) {
     birdsAtEnd: last?.closingBirds ?? null,
     totals,
     kpis: windowKpis(totals),
-    fcr: feedConversionRatio(rows),
+    fcr: flock.purpose === 'BROILER' ? feedConversionRatio(rows) : null,
   };
 }
 
