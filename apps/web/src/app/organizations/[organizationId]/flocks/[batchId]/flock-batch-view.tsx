@@ -12,6 +12,7 @@ import { formatCount, formatDate, formatPercent, humanize } from '@/lib/format';
 import { useCan, useOrganization } from '@/lib/organization-context';
 import { DailyEntryForm } from './daily-entry-form';
 import { DailyMetricsTable } from './daily-metrics-table';
+import { FlockPerformance } from './flock-performance';
 import { HealthPanel } from './health-panel';
 import { ProductionLogs } from './production-logs';
 import { RecentRecords } from './recent-records';
@@ -106,6 +107,8 @@ export function FlockBatchView() {
       {canRecord && (b.status === 'ACTIVE' || b.status === 'DEPLETED') && (
         <DailyEntryForm batch={b} />
       )}
+
+      <FlockPerformance batch={b} />
 
       <DailyMetricsTable batch={b} />
 
