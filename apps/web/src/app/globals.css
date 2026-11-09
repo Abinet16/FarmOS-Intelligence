@@ -3,6 +3,14 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Charts: one validated series hue per mode (dataviz palette slot 1). */
+  --chart-series: #2a78d6;
+  --chart-grid: #e4e4e7;
+  --chart-axis: #71717a;
+  /* Status colours are reserved for state and always shown with an icon and label. */
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
 }
 
 @theme inline {
@@ -16,6 +24,9 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --chart-series: #3987e5;
+    --chart-grid: #27272a;
+    --chart-axis: #a1a1aa;
   }
 }
 
