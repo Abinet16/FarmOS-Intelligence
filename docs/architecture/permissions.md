@@ -46,12 +46,13 @@ once in [`packages/shared-types/src/roles.ts`](../../packages/shared-types/src/r
 
 ## What each permission unlocks
 
-| Permission                      | Allows                                                                                           |
-| ------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `farm:configure`                | Farms, houses, flock batches and their lifecycle; feed types; inventory items                    |
-| `production:record`             | Daily entries, editing submitted logs, requesting corrections, inventory movements and transfers |
-| `production:approve-correction` | Approving production logs, reviewing corrections, voiding deaths/feed/weight records             |
-| `health:record`                 | Vaccines, vaccination schedules and outcomes, health observations                                |
-| `audit:view`                    | The audit log                                                                                    |
+| Permission                      | Allows                                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `farm:configure`                | Farms, houses, flock batches and their lifecycle; feed types; inventory items                                                        |
+| `production:record`             | Daily entries, editing submitted logs, requesting corrections, inventory movements and transfers                                     |
+| `production:approve-correction` | Approving production logs, reviewing corrections, voiding deaths/feed/weight records; evaluating, acknowledging and resolving alerts |
+| `health:record`                 | Vaccines, vaccination schedules and outcomes, health observations                                                                    |
+| `reports:view`                  | Dashboards and analytics (overview, trends, farm and flock comparisons)                                                              |
+| `audit:view`                    | The audit log                                                                                                                        |
 
-Reading farm structure, records, health and inventory needs only membership.
+Reading farm structure, records, health, inventory and alerts needs only membership.
