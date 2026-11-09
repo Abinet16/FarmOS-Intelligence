@@ -6,6 +6,7 @@ import { PrismaService, type Tx } from '../../database/prisma.service.js';
 import type { TenantContext } from '../../common/request.js';
 import { invalidField } from '../../common/pipes/zod-validation.pipe.js';
 import { AuditService } from '../audit/audit.service.js';
+import { computeStock } from './stock.js';
 import type {
   CreateItemDto,
   MovementDto,
@@ -177,60 +178,7 @@ export class InventoryService {
 
   /** Balance per item and farm, flagged when at or below the item's reorder level. */
   stock(tenant: TenantContext, query: StockQuery) {
-    return this.prisma.withTenant(tenant, async (tx) => {
-      const sums = await tx.inventoryMovement.groupBy({
-        by: ['itemId', 'farmId', 'movementType'],
-        where: {
-          organizationId: tenant.organizationId,
-          ...(query.itemId && { itemId: query.itemId }),
-          ...(query.farmId && { farmId: query.farmId }),
-        },
-        _sum: { quantity: true },
-      });
-
-      const balances = new Map<string, { itemId: string; farmId: string; balance: Decimal }>();
-      for (const row of sums) {
-        const key = `${row.itemId}:${row.farmId}`;
-        const entry = balances.get(key) ?? {
-          itemId: row.itemId,
-          farmId: row.farmId,
-          balance: new Decimal(0),
-        };
-        const amount = row._sum.quantity ?? new Decimal(0);
-        entry.balance =
-          MOVEMENT_DIRECTION[row.movementType] > 0
-            ? entry.balance.plus(amount)
-            : entry.balance.minus(amount);
-        balances.set(key, entry);
-      }
-
-      const [items, farms] = await Promise.all([
-        tx.inventoryItem.findMany({ where: { organizationId: tenant.organizationId } }),
-        tx.farm.findMany({
-          where: { organizationId: tenant.organizationId },
-          select: { id: true, name: true, archivedAt: true },
-        }),
-      ]);
-      const itemById = new Map(items.map((item) => [item.id, item]));
-      const farmById = new Map(farms.map((farm) => [farm.id, farm]));
-
-      const rows = [...balances.values()].map(({ itemId, farmId, balance }) => {
-        const item = itemById.get(itemId)!;
-        return {
-          item: { id: item.id, name: item.name, unit: item.unit },
-          farm: farmById.get(farmId)!,
-          balance: Number(balance),
-          reorderLevel: item.reorderLevel === null ? null : Number(item.reorderLevel),
-          belowReorder: item.reorderLevel !== null && balance.lte(item.reorderLevel),
-        };
-      });
-      return rows
-        .filter((row) => !query.belowReorder || row.belowReorder)
-        .sort(
-          (a, b) =>
-            a.item.name.localeCompare(b.item.name) || a.farm.name.localeCompare(b.farm.name),
-        );
-    });
+    return this.prisma.withTenant(tenant, (tx) => computeStock(tx, tenant.organizationId, query));
   }
 
   /** Newest first, keyset-paginated on (occurred_at, id). */
