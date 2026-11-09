@@ -10,3 +10,4 @@
 | [0006](0006-farm-structure.md)               | Farm structure                    | Accepted |
 | [0007](0007-daily-records.md)                | Daily flock records               | Accepted |
 | [0008](0008-corrections-health-inventory.md) | Corrections, health and inventory | Accepted |
+| [0009](0009-analytics-and-alerts.md)         | Analytics and alerts              | Accepted |
