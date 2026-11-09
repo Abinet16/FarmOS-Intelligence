@@ -3,8 +3,12 @@ import type { signUp } from './app.js';
 
 export type Agent = Awaited<ReturnType<typeof signUp>>['agent'];
 
-export const send = (agent: Agent, method: 'post' | 'patch', url: string, body: object = {}) =>
-  agent[method](url).set('Origin', WEB_ORIGIN).send(body);
+export const send = (
+  agent: Agent,
+  method: 'post' | 'patch' | 'put',
+  url: string,
+  body: object = {},
+) => agent[method](url).set('Origin', WEB_ORIGIN).send(body);
 
 /**
  * An organization owned by `owner`, with a farm, a house and an active layer
