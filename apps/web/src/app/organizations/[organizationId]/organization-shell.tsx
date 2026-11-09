@@ -11,6 +11,7 @@ import { humanize } from '@/lib/format';
 import { OrganizationProvider } from '@/lib/organization-context';
 
 const SECTIONS: { href: string; label: string; permission?: Permission }[] = [
+  { href: 'dashboard', label: 'Dashboard' },
   { href: 'farms', label: 'Farms & houses' },
   { href: 'flocks', label: 'Flocks' },
   { href: 'inventory', label: 'Inventory' },
