@@ -89,15 +89,17 @@ export function FlockPerformance({ batch }: { batch: FlockBatch }) {
                 }
                 hint="per day"
               />
-              <StatTile
-                label="FCR"
-                value={formatNumber(summary.fcr, 2)}
-                hint={
-                  summary.fcr === null
-                    ? 'needs two weigh days and daily feed'
-                    : 'between weigh days'
-                }
-              />
+              {!laying && (
+                <StatTile
+                  label="FCR"
+                  value={formatNumber(summary.fcr, 2)}
+                  hint={
+                    summary.fcr === null
+                      ? 'needs two weigh days and daily feed'
+                      : 'between weigh days'
+                  }
+                />
+              )}
             </div>
           )}
           {rows.length > 0 && (
