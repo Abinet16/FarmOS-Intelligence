@@ -141,8 +141,8 @@ describe('analytics', () => {
     await owner.get(`${base}/analytics/flocks/00000000-0000-4000-8000-000000000000`).expect(404);
   });
 
-  it('reports FCR when two weigh days bracket the range', async () => {
-    const { base: other, batchId } = await createFarmWithFlock(owner, 'Broiler Co');
+  it('reports FCR for broilers when two weigh days bracket the range', async () => {
+    const { base: other, batchId } = await createFarmWithFlock(owner, 'Broiler Co', 'BROILER');
     const feedType = (await send(owner, 'post', `${other}/feed-types`, { name: 'Starter' })).body
       .id;
     const day = (date: string, body: object) =>
@@ -162,6 +162,11 @@ describe('analytics', () => {
     const { body } = await owner.get(`${other}/analytics/flocks?${window}`).expect(200);
     expect(body.flocks).toHaveLength(1);
     expect(body.flocks[0].fcr).toBeCloseTo(1.5, 10);
+  });
+
+  it('does not report FCR for laying flocks', async () => {
+    const { body } = await get(`flocks?${window}`);
+    expect(body.flocks.map((f: { fcr: number | null }) => f.fcr)).toEqual([null, null]);
   });
 
   it('rejects a range longer than a year', async () => {
