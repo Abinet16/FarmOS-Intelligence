@@ -73,7 +73,10 @@ Sessions and accounts cascade-delete with their user; nothing else does.
 ## Deliberate deviations from the original plan
 
 - `ai_messages` carries `organization_id` so it follows the same composite-FK rule as every
-  other tenant-owned table.
+  other tenant-owned table. `evidence_metadata` holds an answer's claims, evidence references,
+  tool calls and model metadata, never raw tool output. `ai_conversations` gained `title` and
+  `updated_at` for the conversation list; CHECKs bound the title (120) and message (8,000)
+  lengths.
 - `production_logs` gained `status`, `approved_by` and `approved_at`, and a
   `production_log_corrections` table was added to implement the correction workflow.
 - Mortality, feed and weight records gained void columns instead of an edit path
