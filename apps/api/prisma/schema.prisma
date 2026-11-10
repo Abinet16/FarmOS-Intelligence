@@ -683,14 +683,17 @@ model AiConversation {
   id             String   @id @default(uuid()) @db.Uuid
   organizationId String   @map("organization_id") @db.Uuid
   userId         String   @map("user_id") @db.Uuid
+  /// The first question, shortened, for the conversation list.
+  title          String   @default("")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   user         User         @relation("AiConversationUser", fields: [userId], references: [id], onDelete: Restrict)
   messages     AiMessage[]
 
   @@unique([organizationId, id])
-  @@index([organizationId, userId, createdAt])
+  @@index([organizationId, userId, updatedAt])
   @@map("ai_conversations")
 }
 
