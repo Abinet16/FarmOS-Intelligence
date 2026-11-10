@@ -262,6 +262,30 @@ rules and deduplication.
 Evaluating is idempotent: running it again for the same day creates nothing new. Acknowledging
 an alert that isn't open, or resolving a resolved one, is a 409.
 
+## Assistant
+
+Base: `/api/v1/organizations/:organizationId/assistant`. Every endpoint needs `ai:query`.
+Conversations belong to the member who started them: anyone else gets a 404. See
+[AI assistant](../architecture/ai-assistant.md).
+
+| Method | Path                                      | Body / query                        | Returns                                                |
+| ------ | ----------------------------------------- | ----------------------------------- | ------------------------------------------------------ |
+| GET    | `/status`                                 | —                                   | `{ available, model, dailyQuestionLimit }`             |
+| GET    | `/conversations`                          | paging                              | Your conversations, most recently active first         |
+| POST   | `/conversations`                          | `{ question }` (3–1,000 characters) | `201` `{ conversation, messages: [question, answer] }` |
+| GET    | `/conversations/:conversationId`          | —                                   | The conversation with every question and answer        |
+| POST   | `/conversations/:conversationId/messages` | `{ question }`                      | `201` `{ conversation, messages: [question, answer] }` |
+
+An answer message has `answer` (`status`, `answer`, `claims`, `dataGaps`, `suggestedChecks`)
+and `evidence` (`id`, `tool`, `input`, `summary`, `records`). `status` is `ANSWERED`,
+`INSUFFICIENT_DATA` or `OUT_OF_SCOPE`.
+
+| Status | When                                                                      |
+| ------ | ------------------------------------------------------------------------- |
+| 429    | The member asked `AI_DAILY_QUESTION_LIMIT` questions in the last 24 hours |
+| 502    | No grounded answer within the limits; the question is kept, unanswered    |
+| 503    | No API key configured, or the model is unavailable                        |
+
 ## Audit log
 
 | Method | Path                                               | Permission   | Query                                          |
@@ -281,4 +305,4 @@ Audited actions so far: `organization.created`, `organization.updated`, `members
 `vaccination.cancelled`, `health_event.recorded`, `health_event.status_changed`,
 `inventory_item.created`, `inventory_item.updated`, `inventory.movement_recorded`,
 `inventory.transferred`, `alerts.evaluated`, `alert.acknowledged`, `alert.resolved`,
-`alert_settings.updated`.
+`alert_settings.updated`, `assistant.answered`.
