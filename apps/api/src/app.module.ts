@@ -5,6 +5,7 @@ import { AuthGuard } from './common/guards/auth.guard.js';
 import { TenantGuard } from './common/guards/tenant.guard.js';
 import { ConfigModule } from './config/config.module.js';
 import { DatabaseModule } from './database/database.module.js';
+import { AssistantModule } from './modules/ai-assistant/assistant.module.js';
 import { AlertsModule } from './modules/alerts/alerts.module.js';
 import { AnalyticsModule } from './modules/analytics/analytics.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
@@ -42,6 +43,7 @@ import { UsersModule } from './modules/users/users.module.js';
     InventoryModule,
     AnalyticsModule,
     AlertsModule,
+    AssistantModule,
   ],
   providers: [
     // Global guards run in registration order: authenticate, then resolve tenant.
