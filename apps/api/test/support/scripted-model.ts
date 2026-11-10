@@ -25,7 +25,7 @@ export const submit = (answer: Record<string, unknown>) =>
 /** The latest tool results the model was sent, parsed. */
 export function lastToolResults(request: ModelRequest) {
   const last = request.messages.at(-1)!;
-  if (typeof last.content === 'string') return [];
+  if (!Array.isArray(last.content)) return [];
   return last.content.flatMap((block) =>
     block.type === 'tool_result'
       ? [
