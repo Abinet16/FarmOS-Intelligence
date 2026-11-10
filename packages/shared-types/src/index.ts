@@ -1,4 +1,5 @@
 export * from './alerts.js';
+export * from './assistant.js';
 export * from './flocks.js';
 export * from './health.js';
 export * from './inventory.js';
