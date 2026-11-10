@@ -1,5 +1,7 @@
 import type {
   AlertRule,
+  AssistantAnswer,
+  Evidence,
   AlertStatus,
   BatchStatus,
   CorrectionStatus,
@@ -334,4 +336,36 @@ export interface Alert {
   batch: { id: string; batchCode: string } | null;
   acknowledger: Person | null;
   resolver: Person | null;
+}
+
+export interface AssistantStatus {
+  available: boolean;
+  model: string | null;
+  dailyQuestionLimit: number;
+}
+
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssistantMessage {
+  id: string;
+  role: 'USER' | 'ASSISTANT';
+  content: string;
+  createdAt: string;
+  /** Present on answers: the structured reply and the evidence behind it. */
+  answer?: AssistantAnswer;
+  evidence?: Evidence[];
+}
+
+export interface Conversation extends ConversationSummary {
+  messages: AssistantMessage[];
+}
+
+export interface AskResult {
+  conversation: ConversationSummary;
+  messages: AssistantMessage[];
 }
