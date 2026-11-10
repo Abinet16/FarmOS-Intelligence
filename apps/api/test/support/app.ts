@@ -5,8 +5,15 @@ import { AppModule } from '../../src/app.module.js';
 import { configureApp } from '../../src/app.setup.js';
 import { WEB_ORIGIN } from './test-env.js';
 
-export async function createTestApp(): Promise<INestApplication> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+/** Optionally replaces providers, e.g. the assistant's model with a scripted one. */
+export async function createTestApp(
+  overrides: { provide: unknown; useValue: unknown }[] = [],
+): Promise<INestApplication> {
+  const builder = Test.createTestingModule({ imports: [AppModule] });
+  for (const { provide, useValue } of overrides) {
+    builder.overrideProvider(provide as string).useValue(useValue);
+  }
+  const moduleRef = await builder.compile();
   const app = configureApp(moduleRef.createNestApplication({ bodyParser: false, logger: false }));
   await app.init();
   return app;
