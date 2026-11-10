@@ -12,6 +12,7 @@ import { OrganizationProvider } from '@/lib/organization-context';
 
 const SECTIONS: { href: string; label: string; permission?: Permission }[] = [
   { href: 'dashboard', label: 'Dashboard' },
+  { href: 'assistant', label: 'Assistant', permission: 'ai:query' },
   { href: 'farms', label: 'Farms & houses' },
   { href: 'flocks', label: 'Flocks' },
   { href: 'inventory', label: 'Inventory' },
