@@ -11,3 +11,4 @@
 | [0007](0007-daily-records.md)                | Daily flock records               | Accepted |
 | [0008](0008-corrections-health-inventory.md) | Corrections, health and inventory | Accepted |
 | [0009](0009-analytics-and-alerts.md)         | Analytics and alerts              | Accepted |
+| [0010](0010-grounded-ai-assistant.md)        | A grounded AI assistant           | Accepted |
