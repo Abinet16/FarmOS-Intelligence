@@ -29,6 +29,14 @@ const envSchema = z.object({
       if (value === 'true') return true;
       return /^\d+$/.test(value) ? Number(value) : value;
     }),
+  /**
+   * Claude API key for the assistant. Without it the assistant answers 503;
+   * everything else works.
+   */
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  AI_MODEL: z.string().min(1).default('claude-opus-5-5'),
+  /** Questions one user may ask per organization per day. */
+  AI_DAILY_QUESTION_LIMIT: z.coerce.number().int().positive().default(50),
 });
 
 export type Env = z.infer<typeof envSchema>;
