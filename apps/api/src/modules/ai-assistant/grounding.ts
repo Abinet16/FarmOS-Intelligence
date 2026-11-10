@@ -9,8 +9,8 @@ const MONTH = '(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\\.
  */
 const NOT_FIGURES = [
   /\b\d{4}-\d{2}-\d{2}\b/g,
-  new RegExp(`\\b${MONTH}\\s+\\d{1,2}(?:\\s*[–-]\\s*\\d{1,2})?(?:,?\\s+\\d{4})?`, 'gi'),
   new RegExp(`\\b\\d{1,2}(?:\\s*[–-]\\s*\\d{1,2})?\\s+${MONTH}(?:\\s+\\d{4})?`, 'gi'),
+  new RegExp(`\\b${MONTH}\\s+\\d{1,2}\\b(?:\\s*[–-]\\s*\\d{1,2})?\\b(?:,?\\s+\\d{4})?`, 'gi'),
   /\b[A-Za-z]+[-_]?\d[\w-]*/g,
 ];
 
