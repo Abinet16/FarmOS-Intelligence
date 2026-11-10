@@ -40,6 +40,8 @@ once in [`packages/shared-types/src/roles.ts`](../../packages/shared-types/src/r
 - **Four eyes on corrections:** a correction to an approved production log must be reviewed by
   someone other than the person who requested it, even if the requester holds
   `production:approve-correction`.
+- **Assistant conversations are private** to the member who started them; owners can't read
+  them. Each answer leaves an `assistant.answered` audit entry (status, tools used, counts).
 - An organization always keeps at least one owner. Demoting or removing the last owner is
   rejected with **409**, and owner rows are locked during the check so concurrent requests cannot
   both succeed.
@@ -54,5 +56,6 @@ once in [`packages/shared-types/src/roles.ts`](../../packages/shared-types/src/r
 | `health:record`                 | Vaccines, vaccination schedules and outcomes, health observations                                                                    |
 | `reports:view`                  | Dashboards and analytics (overview, trends, farm and flock comparisons)                                                              |
 | `audit:view`                    | The audit log                                                                                                                        |
+| `ai:query`                      | The assistant. Its tools also need `reports:view`, so it can only look up what the member could see on the dashboards                |
 
 Reading farm structure, records, health, inventory and alerts needs only membership.
