@@ -82,7 +82,8 @@ export function grade(testCase: EvalCase, outcome: Outcome, scope: Scope): Grade
 
   const { answer, evidence } = outcome;
   const text = [answer.answer, ...answer.claims.map((c) => c.statement)].join('\n');
-  const stated = figuresIn(text);
+  // Figures are graded on the reply the user reads; claims restate parts of it.
+  const stated = figuresIn(answer.answer);
 
   if (expect.status) {
     checks.push({
