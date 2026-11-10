@@ -4,7 +4,9 @@ A multi-tenant farm operations and decision-support platform, starting with poul
 Farm teams record daily operations; managers get validated metrics, threshold alerts, and an AI
 assistant whose answers are grounded in their own records.
 
-> **Status:** v0.3 (Analytics and alerts) is done; v0.4 (AI decision support) is next. See the [roadmap](#roadmap).
+> **Status:** v0.3 (Analytics and alerts) is done. Week 7 of v0.4 (AI decision support) is done: a
+> grounded assistant with an evaluation set. Reports and background jobs (week 8) complete v0.4.
+> See the [roadmap](#roadmap).
 
 ## Stack
 
@@ -12,6 +14,7 @@ assistant whose answers are grounded in their own records.
 | -------- | -------------------------------------------------------------- |
 | Web      | Next.js (App Router), TypeScript, Tailwind CSS, TanStack Query |
 | API      | NestJS, Prisma 7, PostgreSQL 17                                |
+| AI       | Claude (Anthropic SDK), server-side tools and grounding checks |
 | Jobs     | Redis + BullMQ                                                 |
 | Tooling  | pnpm workspaces, Turborepo, ESLint, Prettier, Vitest           |
 | Delivery | Docker, GitHub Actions                                         |
@@ -43,14 +46,15 @@ curl localhost:4000/health/ready   # {"status":"ok","checks":{"database":"up"}}
 
 ## Common commands
 
-| Command                 | What it does                                               |
-| ----------------------- | ---------------------------------------------------------- |
-| `pnpm lint`             | ESLint across all packages                                 |
-| `pnpm typecheck`        | TypeScript checks across all packages                      |
-| `pnpm test`             | Unit tests                                                 |
-| `pnpm test:integration` | Integration tests against the database in `DATABASE_URL`   |
-| `pnpm db:migration:new` | Write a migration from `schema.prisma` changes (see below) |
-| `pnpm format`           | Prettier                                                   |
+| Command                                    | What it does                                                |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| `pnpm lint`                                | ESLint across all packages                                  |
+| `pnpm typecheck`                           | TypeScript checks across all packages                       |
+| `pnpm test`                                | Unit tests                                                  |
+| `pnpm test:integration`                    | Integration tests against the database in `DATABASE_URL`    |
+| `pnpm --filter @farmos/api eval:assistant` | Assistant evaluation (model cases need `ANTHROPIC_API_KEY`) |
+| `pnpm db:migration:new`                    | Write a migration from `schema.prisma` changes (see below)  |
+| `pnpm format`                              | Prettier                                                    |
 
 ## Documentation
 
@@ -61,6 +65,7 @@ curl localhost:4000/health/ready   # {"status":"ok","checks":{"database":"up"}}
 - [API reference](docs/api/README.md)
 - [Metric definitions](docs/architecture/metrics.md)
 - [Alerts](docs/architecture/alerts.md)
+- [AI assistant](docs/architecture/ai-assistant.md)
 - [Architecture decision records](docs/decisions/README.md)
 
 ## Roadmap
@@ -76,4 +81,9 @@ curl localhost:4000/health/ready   # {"status":"ok","checks":{"database":"up"}}
 ## Product boundary
 
 The AI assistant summarizes records, explains calculated trends, and suggests checks. It does
-not diagnose disease, prescribe medication, or modify production records.
+not diagnose disease, prescribe medication, or modify production records. It answers only from
+read-only tools scoped to the member's organization and permissions, and the server rejects
+any answer whose figures aren't in the evidence it cites.
+
+The assistant is optional: set `ANTHROPIC_API_KEY` in `apps/api/.env` to enable it. Without a
+key, everything else works and the assistant page says it isn't configured.
