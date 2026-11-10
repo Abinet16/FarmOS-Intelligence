@@ -64,6 +64,10 @@ jobs:
         run: pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
       - name: Integration tests (rebuilds farmos_test from migrations)
         run: pnpm test:integration
+      # No API key in CI: this checks the eval fixture against its hand-calculated
+      # figures and skips the model cases, which run as a release step.
+      - name: Assistant evaluation fixture
+        run: pnpm --filter @farmos/api eval:assistant
 
   build:
     name: Build
