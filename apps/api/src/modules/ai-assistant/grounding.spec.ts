@@ -14,7 +14,10 @@ const evidence = new Map<string, unknown>([
   ['E1', { flocks: [{ batchCode: 'LAY-01', kpis: { mortalityPct: 1.0240797 }, feedKg: 1234.6 }] }],
   ['E2', { overview: { liveBirds: 4756, henDayPct: 86.0612 } }],
 ]);
-const turn = { data: evidence, question: 'Which flock had the highest mortality over the last 7 days?' };
+const turn = {
+  data: evidence,
+  question: 'Which flock had the highest mortality over the last 7 days?',
+};
 
 describe('figuresIn', () => {
   it('reads plain, grouped and decimal figures', () => {
@@ -34,7 +37,9 @@ describe('figuresIn', () => {
 
 describe('numbersIn', () => {
   it('collects numbers from nested results, skipping other values', () => {
-    expect(numbersIn({ a: 1, b: [2, { c: 3 }], d: 'x', e: null, f: Number.NaN })).toEqual([1, 2, 3]);
+    expect(numbersIn({ a: 1, b: [2, { c: 3 }], d: 'x', e: null, f: Number.NaN })).toEqual([
+      1, 2, 3,
+    ]);
   });
 });
 
