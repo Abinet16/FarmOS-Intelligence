@@ -28,6 +28,19 @@ describe('loadEnv', () => {
     );
   });
 
+  it('leaves the assistant unconfigured without a key', () => {
+    const env = loadEnv(valid);
+    expect(env.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(env.AI_MODEL).toBe('claude-opus-5-5');
+    expect(env.AI_DAILY_QUESTION_LIMIT).toBe(50);
+  });
+
+  it('rejects a non-positive question limit', () => {
+    expect(() => loadEnv({ ...valid, AI_DAILY_QUESTION_LIMIT: '0' })).toThrow(
+      /AI_DAILY_QUESTION_LIMIT/,
+    );
+  });
+
   it('rejects a missing DATABASE_URL', () => {
     const { DATABASE_URL: _omit, ...rest } = valid;
     expect(() => loadEnv(rest)).toThrow(/DATABASE_URL/);
