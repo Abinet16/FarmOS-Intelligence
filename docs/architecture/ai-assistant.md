@@ -100,7 +100,8 @@ and bird-weighted rates.
 ## Evidence example
 
 The answer to "Which flock had the highest mortality from 1 to 7 November, and how much feed
-did it consume?", as stored and returned (from the evaluation fixture):
+did it consume?", in the shape the API stores and returns. The figures are the evaluation
+fixture's; the wording is illustrative, not a recorded model run:
 
 ```json
 {
