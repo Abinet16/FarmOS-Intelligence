@@ -1,5 +1,6 @@
 import { ANSWER_STATUSES } from '@farmos/shared-types';
 import { z } from 'zod';
+import { strictInputSchema } from './strict-schema.js';
 
 /**
  * The shape every reply must take. The model submits it through a tool, so
@@ -42,14 +43,5 @@ export const submitAnswerDefinition = {
   description:
     'Deliver the final answer. The server checks that every claim cites evidence from this turn and that every figure appears in that evidence; if not, it returns the problems to fix.',
   strict: true,
-  input_schema: {
-    type: 'object' as const,
-    ...(() => {
-      const { $schema: _schema, ...schema } = z.toJSONSchema(answerSchema) as Record<
-        string,
-        unknown
-      >;
-      return schema;
-    })(),
-  },
+  input_schema: strictInputSchema(answerSchema),
 };

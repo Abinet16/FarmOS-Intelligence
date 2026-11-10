@@ -14,6 +14,7 @@ import type { AlertsService } from '../alerts/alerts.service.js';
 import type { AnalyticsService } from '../analytics/analytics.service.js';
 import { computeStock } from '../inventory/stock.js';
 import { batchTotals, dateKey } from '../metrics/flock-metrics.js';
+import { strictInputSchema } from './strict-schema.js';
 
 const DAY_MS = 86_400_000;
 /** Daily rows are bulky; one tool call returns at most a quarter of them. */
@@ -382,29 +383,12 @@ export function toolsFor(tenant: Pick<TenantContext, 'role'>) {
   return ASSISTANT_TOOLS.filter((t) => hasPermission(tenant.role, t.permission));
 }
 
-/**
- * Drops regex patterns where a format already says the same thing (uuid,
- * date): strict tool schemas support formats, and the server re-validates
- * every input with the full Zod schema anyway.
- */
-function simplify(schema: unknown): unknown {
-  if (Array.isArray(schema)) return schema.map(simplify);
-  if (!schema || typeof schema !== 'object') return schema;
-  const entries = Object.entries(schema).filter(
-    ([key]) => key !== '$schema' && !(key === 'pattern' && 'format' in schema),
-  );
-  return Object.fromEntries(entries.map(([key, value]) => [key, simplify(value)]));
-}
-
 /** Tool definitions in the Messages API format, with strict input schemas. */
 export function toolDefinitions(tools: readonly (typeof ASSISTANT_TOOLS)[number][]) {
   return tools.map((t) => ({
     name: t.name,
     description: t.description,
     strict: true,
-    input_schema: {
-      type: 'object' as const,
-      ...(simplify(z.toJSONSchema(t.input)) as Record<string, unknown>),
-    },
+    input_schema: strictInputSchema(t.input),
   }));
 }
