@@ -9,6 +9,7 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   '@parcel/watcher': false
+  msgpackr-extract: false
 
 # Large tarballs (next, @next/swc, prisma) need headroom on slow links
 fetchTimeout: 600000
