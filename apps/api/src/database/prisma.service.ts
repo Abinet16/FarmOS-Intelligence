@@ -32,6 +32,24 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
   }
 
   /**
+   * Runs fn with access to one organization's rows on behalf of the system
+   * (scheduled and background jobs). No user is set, so policies that rely on
+   * the current user match nothing.
+   */
+  withOrganization<T>(organizationId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+    return this.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_organization_id', ${organizationId}, true)`;
+      return fn(tx);
+    });
+  }
+
+  /** Ids of active organizations, for jobs that run across all of them. */
+  async activeOrganizationIds(): Promise<string[]> {
+    const rows = await this.$queryRaw<{ id: string }[]>`SELECT app_active_organization_ids() AS id`;
+    return rows.map((row) => row.id);
+  }
+
+  /**
    * Runs fn as a user with no tenant selected. RLS then exposes only the
    * user's own memberships and the organizations they belong to.
    */
