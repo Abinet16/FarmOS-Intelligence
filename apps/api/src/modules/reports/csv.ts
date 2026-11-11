@@ -12,6 +12,9 @@ export interface Column<T> {
  * include text typed by farm staff (notes, descriptions), so a cell such as
  * =HYPERLINK(...) must stay text when someone opens the file in Excel.
  */
+/** UTF-8 byte order mark. */
+const BOM = String.fromCharCode(0xfeff);
+
 const FORMULA_START = /^[=+\-@\t\r]/;
 
 function cell(value: CsvValue, decimals?: number): string {
@@ -35,5 +38,5 @@ export function toCsv<T>(columns: readonly Column<T>[], rows: readonly T[]): str
   for (const row of rows) {
     lines.push(columns.map((column) => cell(column.value(row), column.decimals)).join(','));
   }
-  return `﻿${lines.join('\r\n')}\r\n`;
+  return `${BOM}${lines.join('\r\n')}\r\n`;
 }

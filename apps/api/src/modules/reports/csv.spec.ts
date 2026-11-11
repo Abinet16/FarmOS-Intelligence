@@ -17,7 +17,7 @@ const body = (csv: string) => csv.slice(1).split('\r\n');
 describe('toCsv', () => {
   it('starts with a byte order mark and ends lines with CRLF', () => {
     const csv = toCsv(columns, [{ name: 'LAY-01', count: 3, rate: 1.234 }]);
-    expect(csv.startsWith('﻿')).toBe(true);
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
     expect(body(csv)).toEqual(['Name,Count,Rate %', 'LAY-01,3,1.23', '']);
   });
 
@@ -34,7 +34,7 @@ describe('toCsv', () => {
     'keeps %s as text, not a formula',
     (name) => {
       const [, line] = body(toCsv(columns, [{ name, count: 0 }]));
-      expect(line.replace(/^"/, '').startsWith(`'`)).toBe(true);
+      expect(line!.replace(/^"/, '').startsWith(`'`)).toBe(true);
     },
   );
 
