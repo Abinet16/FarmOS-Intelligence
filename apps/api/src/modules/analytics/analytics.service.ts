@@ -23,7 +23,7 @@ const DAY_MS = 86_400_000;
  * feed per kg of gain is meaningless for them (their efficiency is feed per
  * kg of eggs, which needs egg weights FarmOS doesn't record).
  */
-function flockSummary({ flock, rows }: FlockWindow) {
+export function flockSummary({ flock, rows }: FlockWindow) {
   const totals = windowTotals(rows, flock.purpose);
   const last = rows.at(-1);
   return {
