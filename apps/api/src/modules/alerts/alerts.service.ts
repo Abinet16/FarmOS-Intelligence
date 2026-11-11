@@ -7,9 +7,11 @@ import type { TenantContext } from '../../common/request.js';
 import { invalidField } from '../../common/pipes/zod-validation.pipe.js';
 import { pageArgs, toPage } from '../../common/query/pagination.js';
 import { loadFlockWindows } from '../analytics/flock-windows.js';
-import { AuditService } from '../audit/audit.service.js';
+import { AuditService, type AuditActor } from '../audit/audit.service.js';
 import { computeStock } from '../inventory/stock.js';
 import { dateKey } from '../metrics/flock-metrics.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import { alertDigests } from './alert-notifications.js';
 import {
   BASELINE_DAYS,
   dedupeKey,
@@ -37,14 +39,15 @@ const alertInclude = {
 /**
  * Evaluates the alert rules over recorded data and tracks each alert from
  * open to resolved. Evaluation is idempotent: every alert has a deterministic
- * dedupe key, so re-running it (by hand now, on a schedule in week 8) never
- * duplicates anything.
+ * dedupe key, so re-running it (by hand, or hourly by the worker) never
+ * duplicates anything. New alerts notify the people who act on them.
  */
 @Injectable()
 export class AlertsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   getSettings(tenant: TenantContext) {
@@ -68,9 +71,19 @@ export class AlertsService {
     });
   }
 
-  evaluate(tenant: TenantContext, dto: EvaluateAlertsDto) {
-    return this.prisma.withTenant(tenant, async (tx) => {
-      const { organizationId } = tenant;
+  /**
+   * Evaluates the organization's last complete day (or dto.date). The actor is
+   * the member who asked, or null when the scheduled job runs it.
+   */
+  async evaluate(actor: AuditActor, dto: EvaluateAlertsDto) {
+    const { userId, organizationId } = actor;
+    const run = <T>(fn: (tx: Tx) => Promise<T>) =>
+      userId
+        ? this.prisma.withTenant({ organizationId, userId }, fn)
+        : this.prisma.withOrganization(organizationId, fn);
+
+    const { result, emails } = await run(async (tx) => {
+      const tenant = { organizationId };
       const today = await organizationToday(tx, organizationId);
       const day = dto.date ?? new Date(today.getTime() - DAY_MS);
       if (day > today) throw invalidField('date', 'cannot be in the future');
@@ -130,7 +143,7 @@ export class AlertsService {
       ];
 
       const fresh = await this.withoutOpenDuplicates(tx, tenant, candidates);
-      const { count } = await tx.alert.createMany({
+      const created = await tx.alert.createManyAndReturn({
         data: fresh.map((candidate) => ({
           organizationId,
           batchId: candidate.batchId,
@@ -140,16 +153,39 @@ export class AlertsService {
           details: candidate.details,
         })),
         skipDuplicates: true,
+        select: { id: true, ruleCode: true, severity: true },
       });
+      const count = created.length;
 
-      await this.audit.record(tx, tenant, {
+      await this.audit.record(tx, actor, {
         action: 'alerts.evaluated',
         entityType: 'organization',
         entityId: organizationId,
-        metadata: { date, flocks: windows.length, candidates: candidates.length, created: count },
+        metadata: {
+          date,
+          flocks: windows.length,
+          candidates: candidates.length,
+          created: count,
+          scheduled: userId === null,
+        },
       });
-      return { date, flocksChecked: windows.length, raised: candidates.length, created: count };
+
+      const members = await tx.membership.findMany({
+        where: { organizationId },
+        select: { userId: true, role: true },
+      });
+      const emails = await this.notifications.create(
+        tx,
+        organizationId,
+        alertDigests(created, members, date),
+      );
+      return {
+        result: { date, flocksChecked: windows.length, raised: candidates.length, created: count },
+        emails,
+      };
     });
+    await this.notifications.sendEmails(organizationId, emails);
+    return result;
   }
 
   list(tenant: TenantContext, query: ListAlertsQuery) {
@@ -216,7 +252,10 @@ export class AlertsService {
   }
 
   /** Stored settings merged over the defaults, so new fields get sane values. */
-  private async settings(tx: Tx, tenant: TenantContext): Promise<AlertSettings> {
+  private async settings(
+    tx: Tx,
+    tenant: Pick<TenantContext, 'organizationId'>,
+  ): Promise<AlertSettings> {
     const { alertSettings } = await tx.organization.findUniqueOrThrow({
       where: { id: tenant.organizationId },
       select: { alertSettings: true },
@@ -228,7 +267,7 @@ export class AlertsService {
   /** A persistent condition keeps one unresolved alert, however many days it lasts. */
   private async withoutOpenDuplicates(
     tx: Tx,
-    tenant: TenantContext,
+    tenant: Pick<TenantContext, 'organizationId'>,
     candidates: AlertCandidate[],
   ): Promise<AlertCandidate[]> {
     const persistent = candidates.filter((c) => c.persistent);
