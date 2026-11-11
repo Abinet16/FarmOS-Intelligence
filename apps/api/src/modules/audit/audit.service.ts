@@ -10,19 +10,25 @@ export interface AuditEntry {
   metadata?: Prisma.InputJsonValue;
 }
 
+export interface AuditActor {
+  organizationId: string;
+  userId: string | null;
+}
+
 @Injectable()
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Records an audit entry inside the caller's transaction, so the entry
-   * commits or rolls back together with the change it describes.
+   * commits or rolls back together with the change it describes. A null
+   * user records the system (a scheduled or background job) as the actor.
    */
-  record(tx: Tx, tenant: Pick<TenantContext, 'organizationId' | 'userId'>, entry: AuditEntry) {
+  record(tx: Tx, actor: AuditActor, entry: AuditEntry) {
     return tx.auditLog.create({
       data: {
-        organizationId: tenant.organizationId,
-        actorId: tenant.userId,
+        organizationId: actor.organizationId,
+        actorId: actor.userId,
         action: entry.action,
         entityType: entry.entityType,
         entityId: entry.entityId,
