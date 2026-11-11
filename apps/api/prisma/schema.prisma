@@ -143,8 +143,20 @@ enum JobStatus {
   RUNNING
   SUCCEEDED
   FAILED
+  /// Succeeded, but the file was deleted after the retention period.
+  EXPIRED
 
   @@map("job_status")
+}
+
+enum EmailStatus {
+  /// No email for this notification (the recipient's preferences say so).
+  NONE
+  PENDING
+  SENT
+  FAILED
+
+  @@map("email_status")
 }
 
 enum AiMessageRole {
@@ -186,6 +198,8 @@ model Organization {
   alerts                Alert[]
   auditLogs             AuditLog[]
   reportJobs            ReportJob[]
+  notifications         Notification[]
+  notificationPrefs     NotificationPreference[]
   aiConversations       AiConversation[]
 
   @@map("organizations")
@@ -225,6 +239,8 @@ model User {
   auditActors                AuditLog[]                @relation("AuditActor")
   reportRequesters           ReportJob[]               @relation("ReportRequester")
   aiConversationUsers        AiConversation[]          @relation("AiConversationUser")
+  notifications              Notification[]            @relation("NotificationRecipient")
+  notificationPreferences    NotificationPreference[]  @relation("NotificationPreferenceOwner")
 
   @@map("users")
 }
@@ -666,8 +682,16 @@ model ReportJob {
   /// Client-supplied key so a retried request returns the existing job.
   idempotencyKey String    @map("idempotency_key")
   status         JobStatus @default(QUEUED)
+  /// Processing attempts so far, including the one in progress.
+  attempts       Int       @default(0)
   fileKey        String?   @map("file_key")
+  rowCount       Int?      @map("row_count")
+  /// A message safe to show the requester; details stay in the worker log.
   error          String?
+  startedAt      DateTime? @map("started_at") @db.Timestamptz(3)
+  completedAt    DateTime? @map("completed_at") @db.Timestamptz(3)
+  /// After this the file is deleted and the job marked EXPIRED.
+  expiresAt      DateTime? @map("expires_at") @db.Timestamptz(3)
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -675,8 +699,54 @@ model ReportJob {
   requester    User         @relation("ReportRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
 
   @@unique([organizationId, idempotencyKey])
-  @@index([organizationId, createdAt])
+  @@index([organizationId, requestedBy, createdAt])
+  @@index([organizationId, status])
   @@map("report_jobs")
+}
+
+/// In-app notifications, one row per recipient. Private to that recipient.
+model Notification {
+  id             String      @id @default(uuid()) @db.Uuid
+  organizationId String      @map("organization_id") @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  /// What happened, e.g. alert.raised or report.ready.
+  kind           String
+  title          String
+  body           String
+  /// Path in the web app, relative to the organization.
+  link           String?
+  /// The event this notifies about, so job retries never notify twice.
+  dedupeKey      String      @map("dedupe_key")
+  /// Email copy: an outbox state the worker moves from PENDING to SENT or FAILED.
+  emailStatus    EmailStatus @default(NONE) @map("email_status")
+  emailedAt      DateTime?   @map("emailed_at") @db.Timestamptz(3)
+  readAt         DateTime?   @map("read_at") @db.Timestamptz(3)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User         @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, userId, dedupeKey])
+  @@index([organizationId, userId, createdAt])
+  @@index([organizationId, emailStatus])
+  @@map("notifications")
+}
+
+/// Per member, per organization. In-app notifications are always on; these
+/// choose which ones are also emailed. No row means the defaults (no email).
+model NotificationPreference {
+  organizationId         String    @map("organization_id") @db.Uuid
+  userId                 String    @map("user_id") @db.Uuid
+  /// Email alerts at or above this severity; null means no alert emails.
+  emailAlertsMinSeverity Severity? @map("email_alerts_min_severity")
+  emailReports           Boolean   @default(false) @map("email_reports")
+  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User         @relation("NotificationPreferenceOwner", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([organizationId, userId])
+  @@map("notification_preferences")
 }
 
 model AiConversation {
