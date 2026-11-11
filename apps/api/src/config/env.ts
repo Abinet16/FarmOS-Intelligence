@@ -3,7 +3,10 @@ import { z } from 'zod';
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().url(),
-  REDIS_URL: z.string().url().optional(),
+  /** Queues for background jobs (reports, scheduled alert checks, email). */
+  REDIS_URL: z.string().url().default('redis://localhost:6379'),
+  /** Namespaces queue keys, so tests and several environments can share one Redis. */
+  QUEUE_PREFIX: z.string().min(1).default('farmos'),
   API_PORT: z.coerce.number().int().positive().default(4000),
   CORS_ORIGINS: z
     .string()
@@ -37,6 +40,17 @@ const envSchema = z.object({
   AI_MODEL: z.string().min(1).default('claude-opus-5-5'),
   /** Questions one user may ask per organization per day. */
   AI_DAILY_QUESTION_LIMIT: z.coerce.number().int().positive().default(50),
+  /** Where generated report files are written (local disk until object storage in week 10). */
+  REPORTS_DIR: z.string().min(1).default('var/reports'),
+  /** Days a generated report can be downloaded before its file is deleted. */
+  REPORT_RETENTION_DAYS: z.coerce.number().int().positive().max(90).default(7),
+  /** Cron pattern (UTC) for the scheduled alert evaluation of every organization. */
+  ALERT_EVALUATION_CRON: z.string().min(1).default('15 * * * *'),
+  /** How email is delivered. "log" writes messages to the worker log (development). */
+  MAIL_TRANSPORT: z.enum(['log']).default('log'),
+  MAIL_FROM: z.string().min(1).default('FarmOS <no-reply@farmos.local>'),
+  /** Base URL of the web app, for links in emails. */
+  WEB_URL: z.string().url().default('http://localhost:3000'),
 });
 
 export type Env = z.infer<typeof envSchema>;

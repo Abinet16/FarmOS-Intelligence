@@ -35,6 +35,21 @@ describe('loadEnv', () => {
     expect(env.AI_DAILY_QUESTION_LIMIT).toBe(50);
   });
 
+  it('defaults the job and report settings', () => {
+    const env = loadEnv(valid);
+    expect(env.REDIS_URL).toBe('redis://localhost:6379');
+    expect(env.QUEUE_PREFIX).toBe('farmos');
+    expect(env.REPORTS_DIR).toBe('var/reports');
+    expect(env.REPORT_RETENTION_DAYS).toBe(7);
+    expect(env.MAIL_TRANSPORT).toBe('log');
+  });
+
+  it('caps report retention', () => {
+    expect(() => loadEnv({ ...valid, REPORT_RETENTION_DAYS: '365' })).toThrow(
+      /REPORT_RETENTION_DAYS/,
+    );
+  });
+
   it('rejects a non-positive question limit', () => {
     expect(() => loadEnv({ ...valid, AI_DAILY_QUESTION_LIMIT: '0' })).toThrow(
       /AI_DAILY_QUESTION_LIMIT/,
