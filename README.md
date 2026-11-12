@@ -4,9 +4,9 @@ A multi-tenant farm operations and decision-support platform, starting with poul
 Farm teams record daily operations; managers get validated metrics, threshold alerts, and an AI
 assistant whose answers are grounded in their own records.
 
-> **Status:** v0.3 (Analytics and alerts) is done. Week 7 of v0.4 (AI decision support) is done: a
-> grounded assistant with an evaluation set. Reports and background jobs (week 8) complete v0.4.
-> See the [roadmap](#roadmap).
+> **Status:** v0.4 (AI decision support) is done: a grounded assistant with an evaluation set
+> (week 7), then reports, CSV exports, background jobs and notifications (week 8). Next is
+> v0.5, hardening and a deployed demo. See the [roadmap](#roadmap).
 
 ## Stack
 
@@ -32,7 +32,10 @@ pnpm db:up                                       # PostgreSQL + Redis
 pnpm --filter @farmos/api prisma:migrate:deploy  # apply migrations (as the owner role)
 pnpm --filter @farmos/api db:app-user            # create the RLS-restricted runtime role
 pnpm dev                                         # API on :4000, web on :3000
+pnpm --filter @farmos/api worker:dev             # background jobs (in another terminal)
 ```
+
+Without the worker, reports stay "Waiting" and alerts are evaluated only from the dashboard.
 
 Then open http://localhost:3000, create an account and an organization, then add farms,
 houses and flocks.
@@ -53,6 +56,7 @@ curl localhost:4000/health/ready   # {"status":"ok","checks":{"database":"up"}}
 | `pnpm test`                                | Unit tests                                                  |
 | `pnpm test:integration`                    | Integration tests against the database in `DATABASE_URL`    |
 | `pnpm --filter @farmos/api eval:assistant` | Assistant evaluation (model cases need `ANTHROPIC_API_KEY`) |
+| `pnpm --filter @farmos/api worker:dev`     | Background worker: reports, scheduled alerts, email         |
 | `pnpm db:migration:new`                    | Write a migration from `schema.prisma` changes (see below)  |
 | `pnpm format`                              | Prettier                                                    |
 
@@ -66,6 +70,7 @@ curl localhost:4000/health/ready   # {"status":"ok","checks":{"database":"up"}}
 - [Metric definitions](docs/architecture/metrics.md)
 - [Alerts](docs/architecture/alerts.md)
 - [AI assistant](docs/architecture/ai-assistant.md)
+- [Reports, jobs and notifications](docs/architecture/reports-and-jobs.md)
 - [Architecture decision records](docs/decisions/README.md)
 
 ## Roadmap
