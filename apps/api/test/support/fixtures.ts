@@ -42,7 +42,8 @@ export async function createFarmWithFlock(
   return { org, base, farmId, houseId, batchId };
 }
 
-/** Adds an existing user to the organization with a role. */
+/** Adds an existing user to the organization with a role; returns the membership id. */
 export async function addMember(owner: Agent, base: string, email: string, role: string) {
-  await send(owner, 'post', `${base}/members`, { email, role }).expect(201);
+  const response = await send(owner, 'post', `${base}/members`, { email, role }).expect(201);
+  return response.body.id as string;
 }
