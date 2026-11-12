@@ -29,6 +29,10 @@ erDiagram
   flock_batches ||--o{ alerts : raises
   organizations ||--o{ audit_logs : logs
   organizations ||--o{ report_jobs : requests
+  users ||--o{ report_jobs : "requested by"
+  users ||--o{ notifications : receives
+  organizations ||--o{ notifications : sends
+  users ||--o{ notification_preferences : sets
   ai_conversations ||--o{ ai_messages : contains
 ```
 
@@ -77,6 +81,19 @@ Sessions and accounts cascade-delete with their user; nothing else does.
   tool calls and model metadata, never raw tool output. `ai_conversations` gained `title` and
   `updated_at` for the conversation list; CHECKs bound the title (120) and message (8,000)
   lengths.
+- `report_jobs` gained `attempts`, `row_count`, `started_at`, `completed_at` and `expires_at`,
+  and `job_status` gained `EXPIRED` (the file was deleted after retention). CHECKs require a
+  file, row count and expiry on every SUCCEEDED job and cap the stored error at 500
+  characters. Rows are private to the requester in the service; RLS scopes them to the
+  organization.
+- `notifications` (one row per recipient) and `notification_preferences` (per member and
+  organization) were added in week 8. `(organization_id, user_id, dedupe_key)` is unique, so
+  a retried job can't notify twice. `email_status` (NONE, PENDING, SENT, FAILED) is the email
+  outbox. CHECKs bound the title (200) and body (1,000) and allow only in-app links (`/…`).
+  Both tables have tenant RLS policies.
+- `app_active_organization_ids()` is a `SECURITY DEFINER` function that returns the ids of
+  active organizations, so scheduled jobs can visit each tenant without the runtime role
+  seeing the `organizations` table across tenants.
 - `production_logs` gained `status`, `approved_by` and `approved_at`, and a
   `production_log_corrections` table was added to implement the correction workflow.
 - Mortality, feed and weight records gained void columns instead of an edit path
