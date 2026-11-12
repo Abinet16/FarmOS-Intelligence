@@ -4,6 +4,7 @@ import { ALERT_RULES } from '@farmos/shared-types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ErrorMessage } from '@/components/error-message';
+import { ExportButton } from '@/components/export-button';
 import { SeverityBadge } from '@/components/severity-badge';
 import { api, type Alert, type Page } from '@/lib/api';
 import { formatDate, formatNumber, humanize } from '@/lib/format';
@@ -66,6 +67,7 @@ export function AlertsPanel() {
         <h2 id="alerts" className="text-lg font-medium">
           Open alerts
         </h2>
+        <ExportButton type="alerts" label="Export last 30 days" />
         {canReview && (
           <button
             type="button"
