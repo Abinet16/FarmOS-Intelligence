@@ -7,11 +7,12 @@ import { addMember, createFarmWithFlock, send, type Agent } from './support/fixt
 import { RecordingJobQueue, runJobs } from './support/jobs.js';
 
 const DAY_MS = 86_400_000;
+const BOM = String.fromCharCode(0xfeff);
 
 /** CSV rows as arrays of cells (no quoted commas in this fixture's data). */
 function rows(csv: string) {
   return csv
-    .replace(/^﻿/, '')
+    .replace(BOM, '')
     .trimEnd()
     .split('\r\n')
     .map((line) => line.split(','));
