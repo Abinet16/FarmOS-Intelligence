@@ -13,6 +13,12 @@ import {
 } from './jobs.js';
 
 const HOUR_S = 3_600;
+/**
+ * BullMQ waits for a connection rather than failing, so an add while Redis is
+ * down would hang the request that triggered it. Past this, give up: the work
+ * is in the database and the sweep enqueues it (job ids make a late add harmless).
+ */
+export const ENQUEUE_TIMEOUT_MS = 2_000;
 
 /** Shared defaults: retries with backoff, and bounded history in Redis. */
 export const defaultJobOptions = {
@@ -51,12 +57,20 @@ export class BullmqJobQueue implements JobQueue, OnModuleDestroy {
     data: JobPayloads[K],
     options: EnqueueOptions = {},
   ): Promise<boolean> {
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('timed out')), ENQUEUE_TIMEOUT_MS);
+    });
     try {
-      await this.queue(queueOf(name)).add(name, data, { jobId: options.jobId });
+      const added = this.queue(queueOf(name)).add(name, data, { jobId: options.jobId });
+      added.catch(() => undefined); // a late failure after the timeout is already logged
+      await Promise.race([added, timeout]);
       return true;
     } catch (error) {
       this.logger.warn(`Could not enqueue ${name} (the sweep will retry): ${errorText(error)}`);
       return false;
+    } finally {
+      clearTimeout(timer);
     }
   }
 
