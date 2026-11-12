@@ -7,9 +7,14 @@ import type {
   CorrectionStatus,
   FlockPurpose,
   HealthCategory,
+  JobStatus,
   MortalityReason,
   MovementType,
+  NotificationKind,
   RecordStatus,
+  ReportParameters,
+  ReportType,
+  ReportTypeInfo,
   ResolutionStatus,
   Role,
   Severity,
@@ -368,4 +373,33 @@ export interface Conversation extends ConversationSummary {
 export interface AskResult {
   conversation: ConversationSummary;
   messages: AssistantMessage[];
+}
+
+export interface ReportTypeOption extends ReportTypeInfo {
+  type: ReportType;
+}
+
+export interface ReportJob {
+  id: string;
+  reportType: ReportType;
+  parameters: ReportParameters;
+  status: JobStatus;
+  attempts: number;
+  rowCount: number | null;
+  error: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  expiresAt: string | null;
+  downloadable: boolean;
+}
+
+export interface AppNotification {
+  id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  link: string | null;
+  readAt: string | null;
+  createdAt: string;
 }
