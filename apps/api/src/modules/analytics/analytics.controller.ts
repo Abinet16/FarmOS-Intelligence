@@ -8,7 +8,7 @@ import { AnalyticsService } from './analytics.service.js';
 
 /**
  * Dashboards need `reports:view`. Field workers (`reports:view-limited`) get
- * a narrower view with the reports module in week 8.
+ * the "my entries" report instead (see the reports module).
  */
 @Controller('organizations/:organizationId/analytics')
 export class AnalyticsController {
