@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { ErrorMessage } from '@/components/error-message';
+import { NotificationBell } from '@/components/notification-bell';
 import { api, ApiError, type Organization } from '@/lib/api';
 import { humanize } from '@/lib/format';
 import { OrganizationProvider } from '@/lib/organization-context';
@@ -70,9 +71,12 @@ export function OrganizationShell({ children }: { children: ReactNode }) {
               </Link>
               <p className="text-lg font-semibold">{organization.data.name}</p>
             </div>
-            <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium dark:bg-zinc-800">
-              {humanize(organization.data.role)}
-            </span>
+            <div className="flex items-center gap-3">
+              <NotificationBell organizationId={organizationId} />
+              <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium dark:bg-zinc-800">
+                {humanize(organization.data.role)}
+              </span>
+            </div>
           </div>
           <nav className="mx-auto flex w-full max-w-5xl gap-1 overflow-x-auto px-4 whitespace-nowrap">
             {SECTIONS.filter(
