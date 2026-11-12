@@ -45,6 +45,7 @@ function useAnalytics<T>(
 export function DashboardView() {
   const organization = useOrganization();
   const canView = useCan('reports:view');
+  const canConfigure = useCan('farm:configure');
   const base = `/organizations/${organization.id}`;
   const [days, setDays] = useState<RangePreset>(30);
   const [farmId, setFarmId] = useState('');
@@ -110,6 +111,23 @@ export function DashboardView() {
       </div>
 
       <ErrorMessage error={overview.error ?? trend.error ?? farms.error ?? flocks.error} />
+
+      {farmOptions.data?.items.length === 0 && (
+        <section className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+          <h2 className="font-medium">Get started</h2>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            This organization has no farms yet. The dashboard fills in once a farm has houses and a
+            flock with daily records.
+          </p>
+          {canConfigure ? (
+            <Link href={`${base}/farms`} className="btn-primary self-start">
+              Add a farm
+            </Link>
+          ) : (
+            <p className="text-sm text-zinc-500">Ask an owner or manager to add a farm.</p>
+          )}
+        </section>
+      )}
 
       {o && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
