@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { ErrorMessage } from '@/components/error-message';
+import { ExportButton } from '@/components/export-button';
 import { api, type DailyMetrics, type FlockBatch } from '@/lib/api';
 import { formatCount, formatDate, formatNumber, formatPercent } from '@/lib/format';
 import { useOrganization } from '@/lib/organization-context';
@@ -24,9 +25,17 @@ export function DailyMetricsTable({ batch }: { batch: FlockBatch }) {
 
   return (
     <section aria-labelledby="daily-metrics" className="flex flex-col gap-3">
-      <h2 id="daily-metrics" className="text-lg font-medium">
-        Last 14 days
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="daily-metrics" className="text-lg font-medium">
+          Last 14 days
+        </h2>
+        {metrics.data && (
+          <ExportButton
+            type="daily_production"
+            parameters={{ batchId: batch.id, from: metrics.data.from, to: metrics.data.to }}
+          />
+        )}
+      </div>
       <ErrorMessage error={metrics.error} />
       {metrics.data && (
         <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
