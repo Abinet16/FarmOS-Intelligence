@@ -27,7 +27,7 @@ flowchart TB
     GUARDS --> Modules
   end
 
-  WORKER["Worker (apps/worker)<br/>BullMQ processors"]
+  WORKER["Worker (apps/api, src/worker.ts)<br/>BullMQ processors"]
   PG[(PostgreSQL<br/>source of truth)]
   REDIS[(Redis<br/>queues · cache)]
   LLM[LLM provider]
@@ -52,16 +52,21 @@ flowchart TB
 5. A domain service applies business rules.
 6. The repository runs tenant-scoped queries; composite foreign keys and row-level
    security back this up in the database.
-7. An audit entry and any background jobs are recorded in the same transaction (outbox).
+7. An audit entry and any background work are recorded in the same transaction. Jobs are
+   enqueued after the commit, and a sweep recovers any that were lost
+   ([ADR-0011](../decisions/0011-background-jobs-and-reports.md)).
 8. The API returns a documented response.
+
+The worker is a second entry point of the API codebase rather than its own package: it runs
+the same modules (reports, alerts, notifications) without HTTP. See
+[reports-and-jobs.md](reports-and-jobs.md).
 
 ## Repository layout
 
 | Path                     | Purpose                                                    |
 | ------------------------ | ---------------------------------------------------------- |
-| `apps/api`               | NestJS API, Prisma schema and migrations                   |
+| `apps/api`               | NestJS API and worker, Prisma schema and migrations        |
 | `apps/web`               | Next.js App Router client                                  |
-| `apps/worker`            | BullMQ processors (added in week 8)                        |
 | `packages/shared-types`  | Roles, permissions and DTO contracts shared by API and web |
 | `packages/tsconfig`      | Shared TypeScript configuration                            |
 | `packages/eslint-config` | Shared ESLint flat config                                  |
@@ -72,6 +77,6 @@ flowchart TB
 
 | Environment | Composition                                                               |
 | ----------- | ------------------------------------------------------------------------- |
-| Local       | `docker compose` for PostgreSQL + Redis; API and web run with `pnpm dev`  |
+| Local       | `docker compose` for PostgreSQL + Redis; `pnpm dev`, plus `worker:dev`    |
 | CI          | GitHub Actions with a PostgreSQL service container                        |
 | Demo        | Managed PostgreSQL, container-hosted API and worker, hosted web (week 10) |
