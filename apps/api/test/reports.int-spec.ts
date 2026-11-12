@@ -157,6 +157,7 @@ describe('reports', () => {
       expect(body.items[0]).toMatchObject({
         kind: 'report.ready',
         title: 'Flock performance report is ready',
+        body: expect.stringMatching(/^1 row, 2026-10-01 to 2026-10-07\./),
         link: expect.stringMatching(/^\/reports\?job=/),
       });
       const audit = (await owner.get(`${base}/audit-logs?limit=50`).expect(200)).body.items as {
@@ -326,6 +327,16 @@ describe('reports', () => {
       expect(header!.slice(0, 4)).toEqual(['Date', 'Farm', 'House', 'Flock']);
       expect(days).toHaveLength(7);
       expect(days.map((day) => day[header!.indexOf('Eggs')])).toEqual(Array(7).fill('900'));
+    });
+
+    it('leaves totals blank, not zero, when nothing was recorded', async () => {
+      const response = await owner
+        .get(`${base}/exports/flock_performance?from=2026-10-09&to=2026-10-10`)
+        .expect(200);
+      const [header, row] = rows(response.text);
+      expect(row![header!.indexOf('Eggs')]).toBe('');
+      expect(row![header!.indexOf('Feed kg')]).toBe('');
+      expect(row![header!.indexOf('Deaths')]).toBe('0');
     });
 
     it('keeps a formula typed into a note as text', async () => {
