@@ -14,7 +14,10 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /out .
 COPY --from=build /repo/apps/api/dist ./dist
+# Generated reports; a named volume mounted here takes this ownership.
+RUN mkdir -p var/reports && chown node:node var/reports
 USER node
 EXPOSE 4000
 HEALTHCHECK --interval=15s --timeout=3s CMD wget -qO- http://localhost:4000/health/live || exit 1
+# The worker runs the same image with: node dist/worker.js
 CMD ["node", "dist/main.js"]
