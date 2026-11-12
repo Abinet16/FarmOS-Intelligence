@@ -7,7 +7,9 @@ FROM base AS build
 COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @farmos/api... build
-RUN pnpm --filter @farmos/api deploy --prod --ignore-scripts /out
+# --legacy: copy workspace packages (shared-types) without opting the whole
+# workspace into injected dependencies, which pnpm 10+ otherwise requires.
+RUN pnpm --filter @farmos/api deploy --prod --ignore-scripts --legacy /out
 
 FROM node:22-alpine AS runtime
 ENV NODE_ENV=production
