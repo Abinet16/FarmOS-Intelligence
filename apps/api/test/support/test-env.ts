@@ -19,6 +19,9 @@ export const testEnv = {
   BETTER_AUTH_URL: 'http://localhost:4000',
   BETTER_AUTH_SECRET: 'test-secret-that-is-at-least-32-characters-long',
   CORS_ORIGINS: 'http://localhost:3000',
+  // Only the queue tests touch Redis, under their own key prefix.
+  REDIS_URL: process.env.REDIS_URL ?? 'redis://localhost:6379',
+  QUEUE_PREFIX: 'farmos-test',
 } as const;
 
 export const WEB_ORIGIN = 'http://localhost:3000';
