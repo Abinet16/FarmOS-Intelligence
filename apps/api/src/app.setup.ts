@@ -22,7 +22,12 @@ export function configureApp(app: INestApplication): INestApplication {
 
   server.set('trust proxy', env.TRUST_PROXY);
   app.use(helmet());
-  app.enableCors({ origin: env.CORS_ORIGINS, credentials: true });
+  app.enableCors({
+    origin: env.CORS_ORIGINS,
+    credentials: true,
+    // The web app reads report file names from downloads made with fetch.
+    exposedHeaders: ['Content-Disposition'],
+  });
   app.use(originCheck(env.CORS_ORIGINS));
   server.all('/api/auth/{*path}', clientIp, toNodeHandler(auth));
   app.use(express.json({ limit: '100kb' }));
