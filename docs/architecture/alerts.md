@@ -43,8 +43,11 @@ zone, the last complete day. It is safe to run any number of times:
   subject**, however many days the condition lasts. Once it is resolved, a still-true
   condition raises a fresh alert.
 
-Week 8 runs the evaluation on a schedule (BullMQ); until then, supervisors run it from the
-dashboard.
+The worker evaluates every active organization hourly (`ALERT_EVALUATION_CRON`, UTC). Each
+run checks the organization's last complete day, recorded in the audit log with no actor and
+`scheduled: true`. Supervisors can still run it from the dashboard, for example for an earlier
+date. New alerts send one summary notification to each person who acts on them; see
+[reports-and-jobs.md](reports-and-jobs.md#notifications).
 
 ## Lifecycle
 
