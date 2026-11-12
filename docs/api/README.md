@@ -286,6 +286,54 @@ and `evidence` (`id`, `tool`, `input`, `summary`, `records`). `status` is `ANSWE
 | 502    | No grounded answer within the limits; the question is kept, unanswered    |
 | 503    | No API key configured, or the model is unavailable                        |
 
+## Reports and exports
+
+Base: `/api/v1/organizations/:organizationId`. Who may run each report depends on the report
+(see [reports-and-jobs.md](../architecture/reports-and-jobs.md#reports)): most need
+`reports:view`; `my_entries` needs `reports:view-limited` or `production:record`. A report the
+role can't run gives **403**.
+
+| Method | Path                             | Body / query                                                                | Returns                                                 |
+| ------ | -------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
+| GET    | `/reports/types`                 | —                                                                           | The report types your role may run                      |
+| POST   | `/reports`                       | `{ type, parameters?: { from?, to?, farmId?, batchId? }, idempotencyKey? }` | `202` the job, with `created: false` for a repeated key |
+| GET    | `/reports`                       | paging, `status?`                                                           | Your report jobs, newest first                          |
+| GET    | `/reports/:reportJobId`          | —                                                                           | One of your jobs, with `downloadable`                   |
+| GET    | `/reports/:reportJobId/download` | —                                                                           | `text/csv` attachment                                   |
+| GET    | `/exports/:type`                 | `from?`, `to?`, `farmId?`, `batchId?`                                       | `text/csv` attachment, generated in the request         |
+
+- **Dates** are `YYYY-MM-DD`. Without them a dated report covers the 30 days ending today in
+  the organization's time zone.
+- **Filters** are checked per type. A filter the report doesn't take, a farm or flock that
+  isn't in the organization, or a range over the report's limit gives **400**.
+- **Job status** is one of `QUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED` or `EXPIRED`.
+- **Downloads** are private to the requester (anyone else gets **404**) and sent with
+  `Cache-Control: no-store`.
+
+| Status | When                                                                        |
+| ------ | --------------------------------------------------------------------------- |
+| 409    | `idempotencyKey` reused for another report or member; download before ready |
+| 410    | The report expired after `REPORT_RETENTION_DAYS`                            |
+| 429    | Five of your reports are already queued or running                          |
+| 400    | Direct export over 92 days or 10,000 rows (generate a report instead)       |
+
+## Notifications
+
+Base: `/api/v1/organizations/:organizationId`. Membership is enough; every endpoint acts on
+the caller's own notifications.
+
+| Method | Path                                  | Body / query                                                 | Returns                                    |
+| ------ | ------------------------------------- | ------------------------------------------------------------ | ------------------------------------------ |
+| GET    | `/notifications`                      | paging, `unread?` (`true`/`false`)                           | Your notifications, newest first           |
+| GET    | `/notifications/unread-count`         | —                                                            | `{ unread }`                               |
+| POST   | `/notifications/:notificationId/read` | —                                                            | The notification, with `changed`           |
+| POST   | `/notifications/read-all`             | —                                                            | `{ marked }`                               |
+| GET    | `/notification-preferences`           | —                                                            | `{ emailAlertsMinSeverity, emailReports }` |
+| PUT    | `/notification-preferences`           | `{ emailAlertsMinSeverity: Severity \| null, emailReports }` | The saved preferences                      |
+
+A notification has `kind` (`alert.raised`, `report.ready`, `report.failed`), `title`, `body`,
+`link` (a path inside the organization, e.g. `/reports?job=…`), `readAt` and `createdAt`.
+
 ## Audit log
 
 | Method | Path                                               | Permission   | Query                                          |
@@ -305,4 +353,7 @@ Audited actions so far: `organization.created`, `organization.updated`, `members
 `vaccination.cancelled`, `health_event.recorded`, `health_event.status_changed`,
 `inventory_item.created`, `inventory_item.updated`, `inventory.movement_recorded`,
 `inventory.transferred`, `alerts.evaluated`, `alert.acknowledged`, `alert.resolved`,
-`alert_settings.updated`, `assistant.answered`.
+`alert_settings.updated`, `assistant.answered`, `report.requested`, `report.generated`,
+`report.failed`, `report.downloaded`, `report.exported`, `notification_preferences.updated`.
+Entries written by the worker (`report.generated`, `report.failed`, scheduled
+`alerts.evaluated`) have no actor.
