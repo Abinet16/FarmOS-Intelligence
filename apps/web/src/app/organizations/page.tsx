@@ -25,7 +25,10 @@ export default function OrganizationsPage() {
   const create = useMutation({
     mutationFn: (input: { name: string; timezone: string }) =>
       api<Organization>('/organizations', { method: 'POST', body: JSON.stringify(input) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['organizations'] }),
+    onSuccess: async (organization) => {
+      await queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      router.push(`/organizations/${organization.id}`);
+    },
   });
 
   const unauthenticated =
@@ -38,12 +41,8 @@ export default function OrganizationsPage() {
 
   function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    create.mutate(
-      { name: String(data.get('name')), timezone: String(data.get('timezone')) },
-      { onSuccess: () => form.reset() },
-    );
+    const data = new FormData(event.currentTarget);
+    create.mutate({ name: String(data.get('name')), timezone: String(data.get('timezone')) });
   }
 
   async function onSignOut() {
