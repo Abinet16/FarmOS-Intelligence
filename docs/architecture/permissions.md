@@ -34,8 +34,15 @@ once in [`packages/shared-types/src/roles.ts`](../../packages/shared-types/src/r
 - Every permission is evaluated **inside one organization**. An auditor in org A has no
   access to org B.
 - `access:manage` is owner-only for the MVP. Delegation to managers is a post-MVP option.
-- `reports:view-limited` means a field worker sees their own recent entries and their
-  assigned batches only; the exact scope is defined with the reports module (week 8).
+- `reports:view-limited` gives a field worker one report: **My entries**, the daily records
+  they entered themselves, for up to 31 days at a time. It covers egg counts, water, deaths
+  and feed. Anyone with `production:record` can run it too. Field workers can't run or
+  export the organization reports.
+- **Report access is checked per report type**, not per route: `canRunReport` in
+  `@farmos/shared-types` lists the permissions for each type. A report job is re-checked
+  against the requester's current role when the worker runs it.
+- **Report jobs, their files and notifications are private** to the member they belong to;
+  owners can't read them. Each member sets their own email preferences.
 - Frontend role-based rendering is for usability only. The API is the security boundary.
 - **Four eyes on corrections:** a correction to an approved production log must be reviewed by
   someone other than the person who requested it, even if the requester holds
@@ -54,8 +61,10 @@ once in [`packages/shared-types/src/roles.ts`](../../packages/shared-types/src/r
 | `production:record`             | Daily entries, editing submitted logs, requesting corrections, inventory movements and transfers                                     |
 | `production:approve-correction` | Approving production logs, reviewing corrections, voiding deaths/feed/weight records; evaluating, acknowledging and resolving alerts |
 | `health:record`                 | Vaccines, vaccination schedules and outcomes, health observations                                                                    |
-| `reports:view`                  | Dashboards and analytics (overview, trends, farm and flock comparisons)                                                              |
+| `reports:view`                  | Dashboards and analytics (overview, trends, farm and flock comparisons); the organization reports and CSV exports                    |
+| `reports:view-limited`          | The **My entries** report of one's own records                                                                                       |
 | `audit:view`                    | The audit log                                                                                                                        |
 | `ai:query`                      | The assistant. Its tools also need `reports:view`, so it can only look up what the member could see on the dashboards                |
 
-Reading farm structure, records, health, inventory and alerts needs only membership.
+Reading farm structure, records, health, inventory and alerts needs only membership, as do a
+member's own notifications and notification preferences.
