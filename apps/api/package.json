@@ -7,6 +7,8 @@
     "build": "nest build",
     "dev": "nest start --watch --env-file .env",
     "start": "node --env-file-if-exists=.env dist/main.js",
+    "worker:dev": "nest start --watch --config nest-cli.worker.json --env-file .env",
+    "worker:start": "node --env-file-if-exists=.env dist/worker.js",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
