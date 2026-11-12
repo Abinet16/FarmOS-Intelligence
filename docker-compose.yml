@@ -43,8 +43,36 @@ services:
       CORS_ORIGINS: http://localhost:3000
       BETTER_AUTH_URL: http://localhost:4000
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
+      REPORTS_DIR: /app/var/reports
     ports:
       - '4000:4000'
+    volumes:
+      - reports:/app/var/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Background jobs: the same image as the API, started with the worker entry point.
+  worker:
+    profiles: ['app']
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    command: ['node', 'dist/worker.js']
+    environment:
+      DATABASE_URL: postgresql://${APP_DB_USER:-farmos_api}:${APP_DB_PASSWORD:-farmos_api_dev_password}@postgres:5432/${POSTGRES_DB:-farmos}?schema=public
+      REDIS_URL: redis://redis:6379
+      BETTER_AUTH_URL: http://localhost:4000
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
+      REPORTS_DIR: /app/var/reports
+      WEB_URL: http://localhost:3000
+    # Report files written here are downloaded through the API, so both mount it.
+    volumes:
+      - reports:/app/var/reports
+    healthcheck:
+      disable: true
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,3 +82,4 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  reports:
