@@ -49,3 +49,14 @@ export const JOB_QUEUE = Symbol('JOB_QUEUE');
 /** Retries with exponential backoff (5 s, 10 s, 20 s) before a job counts as failed. */
 export const JOB_ATTEMPTS = 3;
 export const JOB_BACKOFF_MS = 5_000;
+
+/**
+ * A readable message for a queue or connection error. Node reports a refused
+ * connection as an AggregateError with an empty message and a code.
+ */
+export function errorText(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message || (error as { code?: string }).code || error.name;
+  }
+  return String(error);
+}

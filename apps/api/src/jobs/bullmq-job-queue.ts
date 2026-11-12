@@ -3,6 +3,7 @@ import { Queue, type ConnectionOptions } from 'bullmq';
 import {
   JOB_ATTEMPTS,
   JOB_BACKOFF_MS,
+  errorText,
   queueOf,
   type EnqueueOptions,
   type JobName,
@@ -39,7 +40,7 @@ export class BullmqJobQueue implements JobQueue, OnModuleDestroy {
     if (!queue) {
       queue = new Queue(name, { ...this.settings, defaultJobOptions });
       // Without a listener a connection error would be an unhandled 'error' event.
-      queue.on('error', (error) => this.logger.warn(`Queue ${name}: ${error.message}`));
+      queue.on('error', (error) => this.logger.warn(`Queue ${name}: ${errorText(error)}`));
       this.queues.set(name, queue);
     }
     return queue;
@@ -54,8 +55,7 @@ export class BullmqJobQueue implements JobQueue, OnModuleDestroy {
       await this.queue(queueOf(name)).add(name, data, { jobId: options.jobId });
       return true;
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(`Could not enqueue ${name} (the sweep will retry): ${message}`);
+      this.logger.warn(`Could not enqueue ${name} (the sweep will retry): ${errorText(error)}`);
       return false;
     }
   }
