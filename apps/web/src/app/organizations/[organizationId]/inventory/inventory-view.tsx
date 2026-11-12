@@ -4,6 +4,7 @@ import { SINGLE_MOVEMENT_TYPES } from '@farmos/shared-types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
 import { ErrorMessage } from '@/components/error-message';
+import { ExportButton } from '@/components/export-button';
 import {
   api,
   queryString,
@@ -82,9 +83,12 @@ export function InventoryView() {
       <h1 className="text-2xl font-semibold tracking-tight">Inventory</h1>
 
       <section aria-labelledby="stock" className="flex flex-col gap-3">
-        <h2 id="stock" className="text-lg font-medium">
-          Stock by farm
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="stock" className="text-lg font-medium">
+            Stock by farm
+          </h2>
+          <ExportButton type="inventory_stock" />
+        </div>
         <ErrorMessage error={stock.error} />
         {stock.data?.length === 0 && <p className="text-zinc-500">No stock recorded yet.</p>}
         {stock.data && stock.data.length > 0 && (
