@@ -16,6 +16,8 @@ const SECTIONS: { href: string; label: string; permission?: Permission }[] = [
   { href: 'farms', label: 'Farms & houses' },
   { href: 'flocks', label: 'Flocks' },
   { href: 'inventory', label: 'Inventory' },
+  // Every role has at least one report (field workers: their own entries).
+  { href: 'reports', label: 'Reports' },
   { href: 'reviews', label: 'Reviews', permission: 'production:approve-correction' },
   { href: 'feed-types', label: 'Feed & vaccines' },
 ];
