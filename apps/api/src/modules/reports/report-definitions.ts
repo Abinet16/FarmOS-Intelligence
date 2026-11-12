@@ -79,10 +79,18 @@ const flockPerformance: ReportDefinition<Summary & { farm: string }> = {
     { header: 'Deaths', value: (row) => row.totals.deaths },
     { header: 'Mortality %', value: (row) => row.kpis.mortalityPct, decimals: 2 },
     { header: 'Birds at end', value: (row) => row.birdsAtEnd },
-    { header: 'Eggs', value: (row) => (row.flock.purpose === 'BROILER' ? null : row.totals.eggs) },
+    // Blank, not 0, when nothing was recorded: a missing count isn't a zero count.
+    {
+      header: 'Eggs',
+      value: (row) => (row.totals.daysWithEggs > 0 ? row.totals.eggs : null),
+    },
     { header: 'Hen-day %', value: (row) => row.kpis.henDayPct, decimals: 2 },
     { header: 'Days with egg counts', value: (row) => row.totals.daysWithEggs },
-    { header: 'Feed kg', value: (row) => row.totals.feedKg, decimals: 1 },
+    {
+      header: 'Feed kg',
+      value: (row) => (row.totals.daysWithFeed > 0 ? row.totals.feedKg : null),
+      decimals: 1,
+    },
     { header: 'Feed per bird kg', value: (row) => row.kpis.feedPerBirdKg, decimals: 3 },
     { header: 'Days with feed', value: (row) => row.totals.daysWithFeed },
     { header: 'FCR', value: (row) => row.fcr, decimals: 2 },
