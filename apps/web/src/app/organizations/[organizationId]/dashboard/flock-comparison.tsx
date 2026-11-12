@@ -1,16 +1,30 @@
+import type { ReportParameters } from '@farmos/shared-types';
 import Link from 'next/link';
+import { ExportButton } from '@/components/export-button';
 import { StatusBadge } from '@/components/status-badge';
 import type { FlockSummary } from '@/lib/api';
 import { formatCount, formatNumber, formatPercent } from '@/lib/format';
 
 /** Every flock with birds in the range, with FCR where weigh days allow it. */
-export function FlockComparisonTable({ base, flocks }: { base: string; flocks: FlockSummary[] }) {
+export function FlockComparisonTable({
+  base,
+  flocks,
+  exportParameters,
+}: {
+  base: string;
+  flocks: FlockSummary[];
+  /** The dashboard's range and farm, so the CSV matches the table. */
+  exportParameters: ReportParameters;
+}) {
   if (flocks.length === 0) return null;
   return (
     <section aria-labelledby="flock-comparison" className="flex flex-col gap-3">
-      <h2 id="flock-comparison" className="text-lg font-medium">
-        Flocks in this period
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="flock-comparison" className="text-lg font-medium">
+          Flocks in this period
+        </h2>
+        <ExportButton type="flock_performance" parameters={exportParameters} />
+      </div>
       <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
         <table className="w-full text-right text-sm tabular-nums">
           <thead className="bg-zinc-50 text-zinc-500 dark:bg-zinc-900">

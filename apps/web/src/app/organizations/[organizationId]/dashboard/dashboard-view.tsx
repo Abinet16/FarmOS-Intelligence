@@ -155,7 +155,13 @@ export function DashboardView() {
       <AlertsPanel />
 
       {farms.data && !farmId && <FarmComparisonTable data={farms.data} />}
-      {flocks.data && <FlockComparisonTable base={base} flocks={flocks.data.flocks} />}
+      {flocks.data && (
+        <FlockComparisonTable
+          base={base}
+          flocks={flocks.data.flocks}
+          exportParameters={{ ...range, ...(farmId && { farmId }) }}
+        />
+      )}
 
       <AlertSettingsForm />
     </>
