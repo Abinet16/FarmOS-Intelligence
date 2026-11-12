@@ -86,16 +86,24 @@ export default function OrganizationsPage() {
       {organizations.data && organizations.data.length > 0 && (
         <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
           {organizations.data.map((org) => (
-            <li key={org.id} className="flex items-center justify-between gap-4 px-4 py-3">
-              <div>
-                <Link href={`/organizations/${org.id}`} className="font-medium hover:underline">
-                  {org.name}
-                </Link>
-                <p className="text-sm text-zinc-500">{org.timezone}</p>
-              </div>
-              <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium dark:bg-zinc-800">
-                {org.role.replace('_', ' ').toLowerCase()}
-              </span>
+            <li key={org.id}>
+              <Link
+                href={`/organizations/${org.id}`}
+                className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+              >
+                <div>
+                  <p className="font-medium">{org.name}</p>
+                  <p className="text-sm text-zinc-500">{org.timezone}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium dark:bg-zinc-800">
+                    {org.role.replace('_', ' ').toLowerCase()}
+                  </span>
+                  <span className="text-sm font-medium" aria-hidden="true">
+                    Open →
+                  </span>
+                </div>
+              </Link>
             </li>
           ))}
         </ul>
