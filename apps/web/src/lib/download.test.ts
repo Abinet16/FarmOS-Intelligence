@@ -4,7 +4,10 @@ import { filenameFromDisposition } from './download';
 describe('filenameFromDisposition', () => {
   it('reads the server-chosen name', () => {
     expect(
-      filenameFromDisposition('attachment; filename="mortality_2026-11-01_2026-11-07.csv"', 'x.csv'),
+      filenameFromDisposition(
+        'attachment; filename="mortality_2026-11-01_2026-11-07.csv"',
+        'x.csv',
+      ),
     ).toBe('mortality_2026-11-01_2026-11-07.csv');
   });
 
