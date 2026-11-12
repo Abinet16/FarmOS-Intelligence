@@ -403,7 +403,7 @@ export class ReportsService {
           userId: job.requestedBy,
           kind: 'report.ready',
           title: `${label} report is ready`,
-          body: `${rowCount} rows${span}. You can download it until ${dateKey(expiresAt)}.`,
+          body: `${rowCount} ${rowCount === 1 ? 'row' : 'rows'}${span}. You can download it until ${dateKey(expiresAt)}.`,
           link: `/reports?job=${job.id}`,
           dedupeKey: `report-ready-${job.id}`,
         },
