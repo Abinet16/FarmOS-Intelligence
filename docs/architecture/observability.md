@@ -37,9 +37,9 @@ object:
 {
   "level": "log",
   "pid": 1,
-  "timestamp": "…",
+  "timestamp": 1794681533758,
+  "message": "request",
   "context": "Http",
-  "msg": "request",
   "method": "GET",
   "route": "/api/v1/organizations/:organizationId/farms",
   "path": "/api/v1/organizations/…/farms",
