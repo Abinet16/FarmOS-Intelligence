@@ -4,10 +4,12 @@ import {
   Get,
   Header,
   Headers,
+  Res,
   Inject,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { Public } from '../common/decorators/public.decorator.js';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
@@ -32,13 +34,17 @@ export class MetricsController {
   ) {}
 
   @Get()
-  @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
   @Header('Cache-Control', 'no-store')
-  scrape(@Headers('authorization') authorization?: string) {
+  scrape(
+    @Headers('authorization') authorization?: string,
+    @Res({ passthrough: true }) res?: Response,
+  ) {
     const token = this.env.METRICS_TOKEN;
     if (!token) throw new NotFoundException();
     const given = authorization?.match(/^Bearer (.+)$/)?.[1];
     if (!given || !sameToken(given, token)) throw new UnauthorizedException();
+    // Set only on success: errors stay JSON, like every other route.
+    res?.type('text/plain; version=0.0.4; charset=utf-8');
     return this.metrics.registry.render();
   }
 }
