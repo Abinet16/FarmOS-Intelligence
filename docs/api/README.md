@@ -17,14 +17,35 @@ OpenAPI documentation is planned for week 10. Until then, this page is the refer
 | 403    | Member of the organization, but the role lacks a required permission              |
 | 404    | Not found, **or** not a member of the organization (indistinguishable on purpose) |
 | 409    | Unique conflict, or a rule such as "keep at least one owner"                      |
-| 429    | Rate limited (auth endpoints)                                                     |
+| 429    | Rate limited. `Retry-After` gives the seconds to wait                             |
+| 500    | Unexpected error. Quote the `X-Request-Id` header when reporting it               |
 
-## Health (public)
+Every response carries an `X-Request-Id` header. Send your own (8–128 characters of
+`[A-Za-z0-9._:-]`) to have it kept.
 
-| Method | Path            | Description           |
-| ------ | --------------- | --------------------- |
-| GET    | `/health/live`  | Process is up         |
-| GET    | `/health/ready` | Database is reachable |
+## Rate limits
+
+Each signed-in user may make 300 requests per minute (`RATE_LIMIT_PER_MINUTE`). Some routes
+have tighter limits, per user:
+
+| Bucket             | Limit     | Routes                                                    |
+| ------------------ | --------- | --------------------------------------------------------- |
+| `exports`          | 30 / min  | `GET /exports/:type`                                      |
+| `reports`          | 20 / min  | `POST /reports`                                           |
+| `assistant`        | 10 / min  | `POST /conversations`, `POST /conversations/:id/messages` |
+| `alert-evaluation` | 10 / min  | `POST /alerts/evaluate`                                   |
+| `organizations`    | 20 / hour | `POST /organizations`                                     |
+| `invitations`      | 60 / hour | `POST /members`                                           |
+
+Sign-in and sign-up allow 5 attempts per minute per client address.
+
+## Health and metrics (public)
+
+| Method | Path            | Description                                                                                                     |
+| ------ | --------------- | --------------------------------------------------------------------------------------------------------------- |
+| GET    | `/health/live`  | Process is up                                                                                                   |
+| GET    | `/health/ready` | `database`, `redis` and `worker` checks. 503 if the database is down; `degraded` if only Redis or the worker is |
+| GET    | `/metrics`      | Prometheus metrics. Needs `Authorization: Bearer $METRICS_TOKEN`; 404 when no token is configured               |
 
 ## Authentication (Better Auth)
 
