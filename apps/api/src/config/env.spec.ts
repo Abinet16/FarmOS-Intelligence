@@ -61,6 +61,19 @@ describe('loadEnv', () => {
     expect(() => loadEnv(rest)).toThrow(/DATABASE_URL/);
   });
 
+  it('defaults logging, metrics and rate limits', () => {
+    const env = loadEnv(valid);
+    expect(env.LOG_FORMAT).toBe('pretty');
+    expect(env.LOG_LEVEL).toBe('log');
+    expect(env.METRICS_TOKEN).toBeUndefined();
+    expect(env.RATE_LIMIT_PER_MINUTE).toBe(300);
+  });
+
+  it('rejects an unknown log format and a short metrics token', () => {
+    expect(() => loadEnv({ ...valid, LOG_FORMAT: 'xml' })).toThrow(/LOG_FORMAT/);
+    expect(() => loadEnv({ ...valid, METRICS_TOKEN: 'short' })).toThrow(/METRICS_TOKEN/);
+  });
+
   it('rejects a short auth secret', () => {
     expect(() => loadEnv({ ...valid, BETTER_AUTH_SECRET: 'short' })).toThrow(/BETTER_AUTH_SECRET/);
   });
