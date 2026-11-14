@@ -21,6 +21,9 @@ const SECTIONS: { href: string; label: string; permission?: Permission }[] = [
   { href: 'reports', label: 'Reports' },
   { href: 'reviews', label: 'Reviews', permission: 'production:approve-correction' },
   { href: 'feed-types', label: 'Feed & vaccines' },
+  { href: 'members', label: 'Members' },
+  { href: 'audit', label: 'Audit log', permission: 'audit:view' },
+  { href: 'settings', label: 'Settings' },
 ];
 
 export function OrganizationShell({ children }: { children: ReactNode }) {
