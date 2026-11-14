@@ -1,11 +1,11 @@
 import Link from 'next/link';
 
 const milestones = [
-  { name: 'v0.1 — Secure foundation', state: 'In progress' },
-  { name: 'v0.2 — Farm operations', state: 'Planned' },
-  { name: 'v0.3 — Analytics and alerts', state: 'Planned' },
-  { name: 'v0.4 — AI decision support', state: 'Planned' },
-  { name: 'v0.5 — Production release', state: 'Planned' },
+  { name: 'v0.1 — Secure foundation', state: 'Done' },
+  { name: 'v0.2 — Farm operations', state: 'Done' },
+  { name: 'v0.3 — Analytics and alerts', state: 'Done' },
+  { name: 'v0.4 — AI decision support', state: 'Done' },
+  { name: 'v0.5 — Production release', state: 'In progress' },
 ];
 
 export default function Home() {
