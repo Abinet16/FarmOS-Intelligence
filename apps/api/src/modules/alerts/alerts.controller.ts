@@ -22,6 +22,7 @@ import {
   type ListAlertsQuery,
 } from './alerts.schemas.js';
 import { AlertsService } from './alerts.service.js';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator.js';
 
 /**
  * Any member sees alerts, so the field team knows what needs attention.
@@ -42,6 +43,7 @@ export class AlertsController {
 
   @Post('alerts/evaluate')
   @HttpCode(200)
+  @RateLimit({ name: 'alert-evaluation', limit: 10, windowSeconds: 60 })
   @RequirePermission('production:approve-correction')
   evaluate(
     @Tenant() tenant: TenantContext,
