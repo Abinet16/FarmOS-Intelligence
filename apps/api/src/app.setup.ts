@@ -1,4 +1,4 @@
-import type { INestApplication } from '@nestjs/common';
+import { Logger, type INestApplication } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { toNodeHandler } from 'better-auth/node';
 import express from 'express';
@@ -10,6 +10,8 @@ import { ENV } from './config/config.module.js';
 import type { Env } from './config/env.js';
 import { AUTH } from './modules/auth/auth.module.js';
 import type { Auth } from './modules/auth/auth.js';
+import { AppMetrics } from './observability/app-metrics.js';
+import { httpObserver } from './observability/http-observer.js';
 
 /**
  * Shared by main.ts and the HTTP tests so both exercise the same middleware
@@ -24,6 +26,7 @@ export function configureApp(app: INestApplication): INestApplication {
   server.set('trust proxy', env.TRUST_PROXY);
   // First, so every later middleware, log line and error can refer to the id.
   app.use(requestId);
+  app.use(httpObserver(app.get(AppMetrics), new Logger()));
   app.use(helmet());
   app.enableCors({
     origin: env.CORS_ORIGINS,
@@ -35,7 +38,7 @@ export function configureApp(app: INestApplication): INestApplication {
   app.use(originCheck(env.CORS_ORIGINS));
   server.all('/api/auth/{*path}', clientIp, toNodeHandler(auth));
   app.use(express.json({ limit: '100kb' }));
-  app.setGlobalPrefix('api/v1', { exclude: ['health/live', 'health/ready'] });
+  app.setGlobalPrefix('api/v1', { exclude: ['health/live', 'health/ready', 'metrics'] });
   app.enableShutdownHooks();
   return app;
 }

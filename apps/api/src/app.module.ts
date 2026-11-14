@@ -26,11 +26,13 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { OrganizationsModule } from './modules/organizations/organizations.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { UsersModule } from './modules/users/users.module.js';
+import { ObservabilityModule } from './observability/observability.module.js';
 import { StorageModule } from './storage/storage.module.js';
 
 @Module({
   imports: [
     ConfigModule,
+    ObservabilityModule,
     DatabaseModule,
     JobsModule,
     StorageModule,
