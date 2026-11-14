@@ -22,6 +22,7 @@ export const testEnv = {
   // Only the queue tests touch Redis, under their own key prefix.
   REDIS_URL: process.env.REDIS_URL ?? 'redis://localhost:6379',
   QUEUE_PREFIX: 'farmos-test',
+  METRICS_TOKEN: 'test-metrics-token-0123456789',
 } as const;
 
 export const WEB_ORIGIN = 'http://localhost:3000';
