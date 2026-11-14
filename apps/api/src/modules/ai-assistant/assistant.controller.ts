@@ -10,6 +10,7 @@ import {
   type ListConversationsQuery,
 } from './assistant.schemas.js';
 import { AssistantService } from './assistant.service.js';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator.js';
 
 /**
  * The assistant needs `ai:query`. What it can look up is further limited to
@@ -36,6 +37,7 @@ export class AssistantController {
 
   @Post('conversations')
   @RequirePermission('ai:query')
+  @RateLimit({ name: 'assistant', limit: 10, windowSeconds: 60 })
   start(@Tenant() tenant: TenantContext, @Body(new ZodValidationPipe(askSchema)) dto: AskDto) {
     return this.assistant.ask(tenant, null, dto);
   }
@@ -51,6 +53,7 @@ export class AssistantController {
 
   @Post('conversations/:conversationId/messages')
   @RequirePermission('ai:query')
+  @RateLimit({ name: 'assistant', limit: 10, windowSeconds: 60 })
   ask(
     @Tenant() tenant: TenantContext,
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
