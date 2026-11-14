@@ -24,7 +24,8 @@ describe('createLogger', () => {
     const out = capture();
     try {
       createLogger({ LOG_FORMAT: 'json', LOG_LEVEL: 'log' }).log(
-        { msg: 'request', status: 200 },
+        'request',
+        { status: 200 },
         'Http',
       );
     } finally {
@@ -32,8 +33,7 @@ describe('createLogger', () => {
     }
     expect(out.lines).toHaveLength(1);
     const entry = JSON.parse(out.lines[0]!);
-    expect(entry).toMatchObject({ level: 'log', context: 'Http' });
-    expect(JSON.stringify(entry)).toContain('"status":200');
+    expect(entry).toMatchObject({ level: 'log', context: 'Http', message: 'request', status: 200 });
   });
 
   it('redacts credentials in structured values', () => {
