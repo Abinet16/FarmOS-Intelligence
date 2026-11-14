@@ -8,6 +8,10 @@ const envSchema = z.object({
   /** Namespaces queue keys, so tests and several environments can share one Redis. */
   QUEUE_PREFIX: z.string().min(1).default('farmos'),
   API_PORT: z.coerce.number().int().positive().default(4000),
+  /** "json" writes one JSON object per line for log collectors; "pretty" is for terminals. */
+  LOG_FORMAT: z.enum(['pretty', 'json']).default('pretty'),
+  /** The least severe level written: debug < log < warn < error. */
+  LOG_LEVEL: z.enum(['debug', 'log', 'warn', 'error']).default('log'),
   CORS_ORIGINS: z
     .string()
     .default('http://localhost:3000')
