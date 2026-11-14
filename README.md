@@ -4,9 +4,10 @@ A multi-tenant farm operations and decision-support platform, starting with poul
 Farm teams record daily operations; managers get validated metrics, threshold alerts, and an AI
 assistant whose answers are grounded in their own records.
 
-> **Status:** v0.4 (AI decision support) is done: a grounded assistant with an evaluation set
-> (week 7), then reports, CSV exports, background jobs and notifications (week 8). Next is
-> v0.5, hardening and a deployed demo. See the [roadmap](#roadmap).
+> **Status:** v0.5 (production release) is under way. Week 9 added hardening and
+> observability: request ids, JSON logs, Prometheus metrics, per-user rate limits, a worker
+> heartbeat in the readiness check, database timeouts, and members, audit log and settings
+> pages. Week 10 is the deployed demo. See the [roadmap](#roadmap).
 
 ## Stack
 
@@ -35,7 +36,8 @@ pnpm dev                                         # API on :4000, web on :3000
 pnpm --filter @farmos/api worker:dev             # background jobs (in another terminal)
 ```
 
-Without the worker, reports stay "Waiting" and alerts are evaluated only from the dashboard.
+Without the worker, reports stay "Waiting", alerts are evaluated only from the dashboard, and
+`/health/ready` reports `"status":"degraded"`.
 
 Then open http://localhost:3000, create an account and an organization, then add farms,
 houses and flocks.
@@ -44,7 +46,7 @@ Check the API:
 
 ```bash
 curl localhost:4000/health/live    # {"status":"ok"}
-curl localhost:4000/health/ready   # {"status":"ok","checks":{"database":"up"}}
+curl localhost:4000/health/ready   # {"status":"ok","checks":{"database":"up","redis":"up","worker":"up"}}
 ```
 
 ## Common commands
@@ -71,6 +73,7 @@ curl localhost:4000/health/ready   # {"status":"ok","checks":{"database":"up"}}
 - [Alerts](docs/architecture/alerts.md)
 - [AI assistant](docs/architecture/ai-assistant.md)
 - [Reports, jobs and notifications](docs/architecture/reports-and-jobs.md)
+- [Observability and operations](docs/architecture/observability.md)
 - [Architecture decision records](docs/decisions/README.md)
 
 ## Roadmap
