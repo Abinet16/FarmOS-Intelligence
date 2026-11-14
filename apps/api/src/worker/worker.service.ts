@@ -5,6 +5,7 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
+import { hostname } from 'node:os';
 import { Worker, type Job } from 'bullmq';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
@@ -17,6 +18,7 @@ import {
   type JobQueue,
   type QueueName,
 } from '../jobs/jobs.js';
+import { Heartbeat } from '../observability/heartbeat.js';
 import { JobProcessor } from './job-processor.js';
 import { schedules } from './schedules.js';
 
@@ -39,6 +41,7 @@ export class WorkerService implements OnApplicationBootstrap, OnApplicationShutd
 
   constructor(
     private readonly processor: JobProcessor,
+    private readonly heartbeat: Heartbeat,
     @Inject(JOB_QUEUE) private readonly queue: JobQueue,
     @Inject(ENV) private readonly env: Env,
   ) {}
@@ -67,6 +70,8 @@ export class WorkerService implements OnApplicationBootstrap, OnApplicationShutd
           .upsertJobScheduler(schedule.id, schedule.repeat, { name: schedule.job, data: {} });
       }
     }
+    // Lets the API's readiness check see that jobs are being processed.
+    this.heartbeat.start(`${hostname()}:${process.pid}`);
     this.logger.log(`Processing ${QUEUE_NAMES.join(', ')}`);
   }
 
