@@ -5,6 +5,7 @@ import express from 'express';
 import helmet from 'helmet';
 import { clientIp } from './common/client-ip.middleware.js';
 import { originCheck } from './common/origin-check.middleware.js';
+import { requestId, REQUEST_ID_HEADER } from './common/request-id.middleware.js';
 import { ENV } from './config/config.module.js';
 import type { Env } from './config/env.js';
 import { AUTH } from './modules/auth/auth.module.js';
@@ -21,12 +22,15 @@ export function configureApp(app: INestApplication): INestApplication {
   const server = (app as NestExpressApplication).getHttpAdapter().getInstance();
 
   server.set('trust proxy', env.TRUST_PROXY);
+  // First, so every later middleware, log line and error can refer to the id.
+  app.use(requestId);
   app.use(helmet());
   app.enableCors({
     origin: env.CORS_ORIGINS,
     credentials: true,
-    // The web app reads report file names from downloads made with fetch.
-    exposedHeaders: ['Content-Disposition'],
+    // The web app reads report file names from downloads made with fetch, and
+    // shows the request id with server errors.
+    exposedHeaders: ['Content-Disposition', REQUEST_ID_HEADER],
   });
   app.use(originCheck(env.CORS_ORIGINS));
   server.all('/api/auth/{*path}', clientIp, toNodeHandler(auth));
