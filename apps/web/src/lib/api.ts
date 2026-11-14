@@ -26,9 +26,23 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /** The API's id for the request, for matching a report to its log line. */
+    readonly requestId?: string,
   ) {
     super(message);
   }
+}
+
+/**
+ * What to show for a failed response. Server errors carry no useful detail, so
+ * they get the request id instead, which support can look up in the logs.
+ */
+export function errorMessage(status: number, message: string, requestId?: string): string {
+  if (status >= 500) {
+    const reference = requestId ? ` (reference ${requestId.slice(0, 8)})` : '';
+    return `Something went wrong on our side. Please try again${reference}.`;
+  }
+  return message;
 }
 
 /** JSON fetch against the versioned API, sending the session cookie. */
@@ -45,7 +59,12 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
           .map((i: { path: string; message: string }) => `${i.path}: ${i.message}`)
           .join('; ')
       : null;
-    throw new ApiError(response.status, issues ?? body.message ?? response.statusText);
+    const requestId = response.headers.get('x-request-id') ?? undefined;
+    throw new ApiError(
+      response.status,
+      errorMessage(response.status, issues ?? body.message ?? response.statusText, requestId),
+      requestId,
+    );
   }
   return response.status === 204 ? (undefined as T) : response.json();
 }
