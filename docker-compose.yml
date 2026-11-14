@@ -44,6 +44,7 @@ services:
       BETTER_AUTH_URL: http://localhost:4000
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
       REPORTS_DIR: /app/var/reports
+      LOG_FORMAT: json
     ports:
       - '4000:4000'
     volumes:
@@ -68,6 +69,7 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
       REPORTS_DIR: /app/var/reports
       WEB_URL: http://localhost:3000
+      LOG_FORMAT: json
     # Report files written here are downloaded through the API, so both mount it.
     volumes:
       - reports:/app/var/reports
