@@ -31,8 +31,7 @@ export function httpObserver(metrics: AppMetrics, logger: LoggerService) {
       metrics.httpRequests.inc({ method: req.method, route, status: String(status) });
       metrics.httpDuration.observe({ method: req.method, route }, seconds);
 
-      const entry = {
-        msg: 'request',
+      const fields = {
         method: req.method,
         route,
         path: req.path,
@@ -41,9 +40,10 @@ export function httpObserver(metrics: AppMetrics, logger: LoggerService) {
         requestId: requestIdOf(req),
         userId: (req as AppRequest).auth?.user.id,
       };
-      if (status >= 500) logger.error(entry, undefined, 'Http');
-      else if (QUIET.has(req.path)) logger.debug?.(entry, 'Http');
-      else logger.log(entry, 'Http');
+      // Fields go as a structured param, so JSON logs put them at the top level.
+      if (status >= 500) logger.error('request', fields, 'Http');
+      else if (QUIET.has(req.path)) logger.debug?.('request', fields, 'Http');
+      else logger.log('request', fields, 'Http');
     });
     next();
   };

@@ -54,7 +54,8 @@ describe('httpObserver', () => {
       { ...farmsRoute, path: '/api/v1/organizations/abc/farms', auth: { user: { id: 'u1' } } },
       200,
     );
-    const entry = log.log.mock.calls[0]![0];
+    const [message, entry, context] = log.log.mock.calls[0]!;
+    expect([message, context]).toEqual(['request', 'Http']);
     expect(entry).toMatchObject({ status: 200, requestId: 'req-12345678', userId: 'u1' });
     expect(JSON.stringify(entry)).not.toContain('?');
   });
