@@ -17,6 +17,11 @@ const envSchema = z.object({
    * metrics are never public by accident.
    */
   METRICS_TOKEN: z.string().min(16, 'must be at least 16 characters').optional(),
+  /**
+   * Requests one signed-in user may make per minute across the API, on top of
+   * the tighter limits on expensive routes. Counted per API instance.
+   */
+  RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(300),
   CORS_ORIGINS: z
     .string()
     .default('http://localhost:3000')
