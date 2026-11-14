@@ -34,11 +34,12 @@ export class ApiError extends Error {
 }
 
 /**
- * What to show for a failed response. Server errors carry no useful detail, so
- * they get the request id instead, which support can look up in the logs.
+ * What to show for a failed response. An unexpected server error (500) carries
+ * no useful detail, so it gets the request id instead, which support can look
+ * up in the logs. Deliberate errors, 502/503 included, keep the API's message.
  */
 export function errorMessage(status: number, message: string, requestId?: string): string {
-  if (status >= 500) {
+  if (status === 500) {
     const reference = requestId ? ` (reference ${requestId.slice(0, 8)})` : '';
     return `Something went wrong on our side. Please try again${reference}.`;
   }
