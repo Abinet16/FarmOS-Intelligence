@@ -12,6 +12,11 @@ const envSchema = z.object({
   LOG_FORMAT: z.enum(['pretty', 'json']).default('pretty'),
   /** The least severe level written: debug < log < warn < error. */
   LOG_LEVEL: z.enum(['debug', 'log', 'warn', 'error']).default('log'),
+  /**
+   * Bearer token for GET /metrics. Without it the endpoint is off (404), so
+   * metrics are never public by accident.
+   */
+  METRICS_TOKEN: z.string().min(16, 'must be at least 16 characters').optional(),
   CORS_ORIGINS: z
     .string()
     .default('http://localhost:3000')
