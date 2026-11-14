@@ -423,3 +423,26 @@ export interface AppNotification {
   readAt: string | null;
   createdAt: string;
 }
+
+export interface Member {
+  id: string;
+  role: Role;
+  createdAt: string;
+  user: { id: string; name: string; email: string };
+}
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  /** Null for the system: scheduled or background jobs. */
+  actor: { id: string; name: string; email: string } | null;
+}
+
+export interface AuditLogPage {
+  items: AuditLogEntry[];
+  nextCursor: string | null;
+}
