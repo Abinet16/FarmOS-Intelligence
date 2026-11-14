@@ -23,6 +23,7 @@ export class Heartbeat implements OnModuleDestroy {
   private readonly redis: Redis;
   private readonly key: string;
   private timer?: NodeJS.Timeout;
+  private connecting?: Promise<void>;
 
   constructor(@Inject(ENV) env: Env) {
     this.redis = new Redis(env.REDIS_URL, {
@@ -71,7 +72,11 @@ export class Heartbeat implements OnModuleDestroy {
     this.redis.disconnect();
   }
 
-  private async connected() {
-    if (this.redis.status === 'wait' || this.redis.status === 'end') await this.redis.connect();
+  /** Connects on first use; concurrent callers share one attempt. */
+  private connected(): Promise<void> {
+    if (this.redis.status === 'wait' || this.redis.status === 'end') {
+      this.connecting = this.redis.connect().finally(() => (this.connecting = undefined));
+    }
+    return this.connecting ?? Promise.resolve();
   }
 }
