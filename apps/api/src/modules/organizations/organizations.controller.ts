@@ -10,12 +10,14 @@ import {
   type UpdateOrganizationDto,
 } from './organizations.schemas.js';
 import { OrganizationsService } from './organizations.service.js';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator.js';
 
 @Controller('organizations')
 export class OrganizationsController {
   constructor(private readonly organizations: OrganizationsService) {}
 
   @Post()
+  @RateLimit({ name: 'organizations', limit: 20, windowSeconds: 3600 })
   create(
     @CurrentUser() user: AuthContext['user'],
     @Body(new ZodValidationPipe(createOrganizationSchema)) dto: CreateOrganizationDto,
