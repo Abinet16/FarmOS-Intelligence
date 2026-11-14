@@ -20,7 +20,15 @@ export interface DbScope {
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleDestroy {
   constructor(@Inject(ENV) env: Env) {
-    super({ adapter: new PrismaPg({ connectionString: env.DATABASE_URL }) });
+    super({
+      adapter: new PrismaPg({
+        connectionString: env.DATABASE_URL,
+        max: env.DATABASE_POOL_MAX,
+        // A runaway query is cancelled instead of holding a connection (and its
+        // transaction's locks) until the pool runs dry.
+        statement_timeout: env.DATABASE_STATEMENT_TIMEOUT_MS,
+      }),
+    });
   }
 
   /** Runs fn with access to one organization's rows on behalf of a user. */
