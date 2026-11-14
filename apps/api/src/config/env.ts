@@ -3,6 +3,10 @@ import { z } from 'zod';
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().url(),
+  /** Connections per process. Size it so all API and worker instances fit the server's limit. */
+  DATABASE_POOL_MAX: z.coerce.number().int().positive().max(100).default(10),
+  /** Postgres cancels any single statement that runs longer than this. */
+  DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
   /** Queues for background jobs (reports, scheduled alert checks, email). */
   REDIS_URL: z.string().url().default('redis://localhost:6379'),
   /** Namespaces queue keys, so tests and several environments can share one Redis. */
