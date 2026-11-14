@@ -20,6 +20,7 @@ import {
   type UpdateMemberDto,
 } from './memberships.schemas.js';
 import { MembershipsService } from './memberships.service.js';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator.js';
 
 @Controller('organizations/:organizationId/members')
 export class MembershipsController {
@@ -33,6 +34,7 @@ export class MembershipsController {
 
   @Post()
   @RequirePermission('access:manage')
+  @RateLimit({ name: 'invitations', limit: 60, windowSeconds: 3600 })
   add(
     @Tenant() tenant: TenantContext,
     @Body(new ZodValidationPipe(addMemberSchema)) dto: AddMemberDto,
