@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter.js';
 import { AuthGuard } from './common/guards/auth.guard.js';
 import { TenantGuard } from './common/guards/tenant.guard.js';
+import { RateLimitGuard } from './common/rate-limit/rate-limit.guard.js';
 import { ConfigModule } from './config/config.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
@@ -58,9 +59,11 @@ import { StorageModule } from './storage/storage.module.js';
     ReportsModule,
   ],
   providers: [
-    // Global guards run in registration order: authenticate, then resolve tenant.
+    // Global guards run in registration order: authenticate, resolve the tenant,
+    // then count the request against the caller's rate limits.
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
+    { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_FILTER, useClass: PrismaExceptionFilter },
   ],
 })
