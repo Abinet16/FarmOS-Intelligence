@@ -45,7 +45,8 @@ describe('observability', () => {
   });
 
   it('requires the bearer token for metrics', async () => {
-    await request(app.getHttpServer()).get('/metrics').expect(401);
+    const rejected = await request(app.getHttpServer()).get('/metrics').expect(401);
+    expect(rejected.headers['content-type']).toMatch(/application\/json/);
     await request(app.getHttpServer())
       .get('/metrics')
       .set('Authorization', 'Bearer wrong-token-0123456789')
@@ -57,7 +58,9 @@ describe('observability', () => {
     const { agent } = await signUp(app, 'metrics');
     await agent.get('/api/v1/organizations/00000000-0000-4000-8000-000000000000').expect(404);
 
-    const text = (await scrape()).text;
+    const response = await scrape();
+    expect(response.headers['content-type']).toMatch(/^text\/plain; version=0\.0\.4/);
+    const text = response.text;
     expect(text).toContain('# TYPE farmos_http_requests_total counter');
     expect(text).toMatch(
       /farmos_http_requests_total\{method="GET",route="\/api\/v1\/organizations\/:organizationId",status="404"\} \d+/,
