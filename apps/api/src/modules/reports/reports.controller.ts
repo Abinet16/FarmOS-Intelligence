@@ -24,6 +24,7 @@ import {
   type RequestReportDto,
 } from './reports.schemas.js';
 import { ReportsService } from './reports.service.js';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator.js';
 
 const CSV = 'text/csv; charset=utf-8';
 
@@ -46,6 +47,7 @@ export class ReportsController {
 
   @Post('reports')
   @HttpCode(202)
+  @RateLimit({ name: 'reports', limit: 20, windowSeconds: 60 })
   request(
     @Tenant() tenant: TenantContext,
     @Body(new ZodValidationPipe(requestReportSchema)) dto: RequestReportDto,
@@ -77,6 +79,7 @@ export class ReportsController {
   }
 
   @Get('exports/:type')
+  @RateLimit({ name: 'exports', limit: 30, windowSeconds: 60 })
   @Header('Cache-Control', 'no-store')
   async export(
     @Tenant() tenant: TenantContext,
