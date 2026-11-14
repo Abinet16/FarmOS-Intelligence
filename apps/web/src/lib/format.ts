@@ -39,3 +39,9 @@ export function formatDateTime(value: string | null): string {
     new Date(value),
   );
 }
+
+/** An audit action as a sentence: "flock_batch.status_changed" → "Flock batch status changed". */
+export function describeAction(action: string): string {
+  const words = action.split('.').map(humanize).join(' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
