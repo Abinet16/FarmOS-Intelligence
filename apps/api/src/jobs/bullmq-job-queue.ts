@@ -11,6 +11,7 @@ import {
   type JobQueue,
   type QueueName,
 } from './jobs.js';
+import type { AppMetrics } from '../observability/app-metrics.js';
 
 const HOUR_S = 3_600;
 /**
@@ -39,7 +40,10 @@ export class BullmqJobQueue implements JobQueue, OnModuleDestroy {
   private readonly logger = new Logger('JobQueue');
   private readonly queues = new Map<QueueName, Queue>();
 
-  constructor(private readonly settings: QueueSettings) {}
+  constructor(
+    private readonly settings: QueueSettings,
+    private readonly metrics?: AppMetrics,
+  ) {}
 
   queue(name: QueueName): Queue {
     let queue = this.queues.get(name);
@@ -65,8 +69,10 @@ export class BullmqJobQueue implements JobQueue, OnModuleDestroy {
       const added = this.queue(queueOf(name)).add(name, data, { jobId: options.jobId });
       added.catch(() => undefined); // a late failure after the timeout is already logged
       await Promise.race([added, timeout]);
+      this.metrics?.jobsEnqueued.inc({ job: name, result: 'queued' });
       return true;
     } catch (error) {
+      this.metrics?.jobsEnqueued.inc({ job: name, result: 'failed' });
       this.logger.warn(`Could not enqueue ${name} (the sweep will retry): ${errorText(error)}`);
       return false;
     } finally {

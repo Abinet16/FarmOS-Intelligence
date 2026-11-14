@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
+import { AppMetrics } from '../observability/app-metrics.js';
 import { BullmqJobQueue } from './bullmq-job-queue.js';
 import { JOB_QUEUE } from './jobs.js';
 
@@ -18,8 +19,9 @@ export function queueSettings(env: Env) {
   providers: [
     {
       provide: JOB_QUEUE,
-      inject: [ENV],
-      useFactory: (env: Env) => new BullmqJobQueue(queueSettings(env)),
+      inject: [ENV, AppMetrics],
+      useFactory: (env: Env, metrics: AppMetrics) =>
+        new BullmqJobQueue(queueSettings(env), metrics),
     },
   ],
   exports: [JOB_QUEUE],

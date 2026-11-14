@@ -7,6 +7,7 @@ import { AlertsModule } from '../modules/alerts/alerts.module.js';
 import { AuditModule } from '../modules/audit/audit.module.js';
 import { NotificationsModule } from '../modules/notifications/notifications.module.js';
 import { ReportsModule } from '../modules/reports/reports.module.js';
+import { ObservabilityModule } from '../observability/observability.module.js';
 import { StorageModule } from '../storage/storage.module.js';
 import { JobProcessor } from './job-processor.js';
 import { WorkerService } from './worker.service.js';
@@ -18,6 +19,7 @@ import { WorkerService } from './worker.service.js';
 @Module({
   imports: [
     ConfigModule,
+    ObservabilityModule,
     DatabaseModule,
     JobsModule,
     StorageModule,
