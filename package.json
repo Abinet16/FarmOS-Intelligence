@@ -21,7 +21,7 @@
     "db:generate": "pnpm --filter @farmos/api prisma:generate"
   },
   "devDependencies": {
-    "prettier": "^3.6.2",
-    "turbo": "^2.11.10"
+    "prettier": "^3.10.1",
+    "turbo": "^2.11.12"
   }
 }
